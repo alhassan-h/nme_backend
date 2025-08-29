@@ -21,6 +21,12 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
+        'user_type',
+        'company',
+        'phone',
+        'location',
+        'verified',
     ];
 
     /**
@@ -31,6 +37,16 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+    ];
+
+    /**
+     * The attributes that should have default values.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'role' => 'both',
+        'verified' => false,
     ];
 
     /**

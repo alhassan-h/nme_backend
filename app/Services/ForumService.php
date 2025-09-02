@@ -70,7 +70,27 @@ class ForumService
     public function getReplies(ForumPost $post): array
     {
         // Load all top-level replies with nested replies eager loaded
-        return $post->replies()->with('user', 'replies')->get()->toArray();
+        $replies = $post->replies()->with('user', 'replies')->get();
+
+        // Transform to match frontend expectations (rename 'user' to 'author')
+        return $replies->map(function ($reply) {
+            $replyArray = $reply->toArray();
+            if (isset($replyArray['user'])) {
+                $replyArray['author'] = $replyArray['user'];
+                unset($replyArray['user']);
+            }
+            // Also transform nested replies
+            if (isset($replyArray['replies'])) {
+                $replyArray['replies'] = collect($replyArray['replies'])->map(function ($nestedReply) {
+                    if (isset($nestedReply['user'])) {
+                        $nestedReply['author'] = $nestedReply['user'];
+                        unset($nestedReply['user']);
+                    }
+                    return $nestedReply;
+                })->toArray();
+            }
+            return $replyArray;
+        })->toArray();
     }
 
     public function createReply(ForumPost $post, array $attributes, User $user): ForumReply

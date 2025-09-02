@@ -25,22 +25,12 @@ class AuthController extends Controller
 
     public function login(LoginRequest $request): JsonResponse
     {
-        $credentials = $request->only('email', 'password');
-
-        if (!Auth::guard('web')->attempt($credentials)) {
-            return response()->json([
-                'message' => 'Invalid credentials',
-            ], Response::HTTP_UNAUTHORIZED);
-        }
-
-        $user = Auth::guard('web')->user();
-        $token = $user->createToken('api-token')->plainTextToken;
-
+        // Debug: Return the request data
         return response()->json([
-            'message' => 'Login successful',
-            'token' => $token,
-            'user' => $user,
-        ], Response::HTTP_OK);
+            'request_data' => $request->all(),
+            'input' => $request->input(),
+            'json' => $request->json()->all(),
+        ]);
     }
 
     public function register(RegisterRequest $request): JsonResponse

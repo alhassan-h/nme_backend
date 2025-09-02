@@ -55,7 +55,10 @@ class ForumService
         $post->category = $attributes['category'];
         $post->tags = $attributes['tags'] ?? [];
         $post->user_id = $user->id;
-        $post->save();
+        $a = $post->save();
+        
+        \Log::info('Created forum post', $post->load('author')->toArray());
+
 
         ForumPostCreated::dispatch($post);
 

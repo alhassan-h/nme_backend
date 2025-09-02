@@ -53,9 +53,9 @@ Route::middleware('auth:sanctum')->prefix('user')->group(function () {
 Route::get('insights', [MarketInsightController::class, 'index'])->name('insights.index');
 Route::get('insights/{id}', [MarketInsightController::class, 'show'])->name('insights.show');
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('insights', [MarketInsightController::class, 'store'])->middleware('can:admin-access')->name('insights.store');
-    Route::put('insights/{insight}', [MarketInsightController::class, 'update'])->middleware('can:admin-access')->name('insights.update');
-    Route::delete('insights/{insight}', [MarketInsightController::class, 'destroy'])->middleware('can:admin-access')->name('insights.destroy');
+    Route::post('insights', [MarketInsightController::class, 'store'])->middleware('can:admin')->name('insights.store');
+    Route::put('insights/{insight}', [MarketInsightController::class, 'update'])->middleware('can:admin')->name('insights.update');
+    Route::delete('insights/{insight}', [MarketInsightController::class, 'destroy'])->middleware('can:admin')->name('insights.destroy');
 });
 
 // Forum
@@ -80,7 +80,7 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // Admin Routes with Admin middleware
-Route::middleware(['auth:sanctum', 'can:admin-access'])->prefix('admin')->group(function () {
+Route::middleware(['auth:sanctum', 'can:admin'])->prefix('admin')->group(function () {
     Route::get('dashboard/stats', [AdminController::class, 'dashboardStats'])->name('admin.dashboard.stats');
     Route::get('users', [AdminController::class, 'users'])->name('admin.users');
     Route::put('users/{id}/status', [AdminController::class, 'updateUserStatus'])->name('admin.users.updateStatus');

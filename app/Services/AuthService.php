@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Events\UserRegistered;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
@@ -21,9 +22,20 @@ class AuthService
             'phone' => $attributes['phone'] ?? null,
             'location' => $attributes['location'] ?? null,
             'verified' => false,
-            'role' => 'user',
         ]);
         UserRegistered::dispatch($user);
+
+        return $user;
+    }
+
+    public function loginUser(array $credentials): ?User
+    {
+        // For API authentication, manually verify credentials
+        $user = User::where('email', $credentials['email'])->first();
+
+        if (!$user || !Hash::check($credentials['password'], $user->password)) {
+            return null;
+        }
 
         return $user;
     }

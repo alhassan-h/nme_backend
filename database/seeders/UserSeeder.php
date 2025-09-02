@@ -15,8 +15,7 @@ class UserSeeder extends Seeder
             [
                 'name' => 'Admin User',
                 'password' => bcrypt('password'),
-                'role' => 'admin',
-                'user_type' => 'both',
+                'user_type' => 'admin',
                 'company' => 'NME Administration',
                 'phone' => '+234 800 000 0000',
                 'location' => 'Abuja',
@@ -34,7 +33,6 @@ class UserSeeder extends Seeder
                 'company' => 'Adebayo Mining Co.',
                 'phone' => '+234 800 123 4567',
                 'location' => 'Kaduna State',
-                'role' => 'user',
                 'verified' => true,
             ],
             [
@@ -45,7 +43,6 @@ class UserSeeder extends Seeder
                 'company' => 'Okafor Limestone Ltd.',
                 'phone' => '+234 800 234 5678',
                 'location' => 'Ogun State',
-                'role' => 'user',
                 'verified' => true,
             ],
             [
@@ -56,7 +53,6 @@ class UserSeeder extends Seeder
                 'company' => 'Plateau Tin Mining',
                 'phone' => '+234 800 345 6789',
                 'location' => 'Plateau State',
-                'role' => 'user',
                 'verified' => true,
             ],
             [
@@ -67,7 +63,6 @@ class UserSeeder extends Seeder
                 'company' => 'Bello Minerals',
                 'phone' => '+234 800 456 7890',
                 'location' => 'Kogi State',
-                'role' => 'user',
                 'verified' => true,
             ],
             [
@@ -78,7 +73,6 @@ class UserSeeder extends Seeder
                 'company' => 'Nwachukwu Coal Ltd.',
                 'phone' => '+234 800 567 8901',
                 'location' => 'Enugu State',
-                'role' => 'user',
                 'verified' => true,
             ],
             [
@@ -89,7 +83,6 @@ class UserSeeder extends Seeder
                 'company' => 'Yusuf Iron Works',
                 'phone' => '+234 800 678 9012',
                 'location' => 'Nasarawa State',
-                'role' => 'user',
                 'verified' => true,
             ],
         ];

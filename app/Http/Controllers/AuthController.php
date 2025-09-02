@@ -25,11 +25,20 @@ class AuthController extends Controller
 
     public function login(LoginRequest $request): JsonResponse
     {
-        // Debug: Return the request data
+        $user = $this->authService->loginUser($request->only(['email', 'password']));
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'Invalid credentials',
+            ], 401);
+        }
+
+        $token = $user->createToken('api-token')->plainTextToken;
+
         return response()->json([
-            'request_data' => $request->all(),
-            'input' => $request->input(),
-            'json' => $request->json()->all(),
+            'message' => 'Login successful',
+            'token' => $token,
+            'user' => $user,
         ]);
     }
 

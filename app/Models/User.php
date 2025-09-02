@@ -22,12 +22,15 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'role',
         'user_type',
         'company',
         'phone',
         'location',
         'verified',
+    ];
+
+    protected $appends = [
+        'userType',
     ];
 
     /**
@@ -46,7 +49,7 @@ class User extends Authenticatable
      * @var array<string, mixed>
      */
     protected $attributes = [
-        'role' => 'both',
+        'user_type' => 'buyer',
         'verified' => false,
     ];
 
@@ -76,5 +79,10 @@ class User extends Authenticatable
     public function forumReplies()
     {
         return $this->hasMany(ForumReply::class);
+    }
+
+    public function getUserTypeAttribute()
+    {
+        return $this->attributes['user_type'];
     }
 }

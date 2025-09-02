@@ -30,15 +30,15 @@ class UserFactory extends Factory
      */
     public function definition(): array
     {
-        $roles = ['admin', 'user'];
-        $userTypes = ['buyer', 'seller', 'both'];
+        // $roles = ['admin', 'user'];
+        // $userTypes = ['buyer', 'seller', 'both'];
+        
         return [
             'name' => $this->faker->name(),
             'email' => $this->faker->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => bcrypt('password'), // default password
-            'role' => $this->faker->randomElement($roles),
-            'user_type' => $this->faker->randomElement($userTypes),
+            'user_type' => $this->faker->passThrough('buyer'),
             'company' => $this->faker->company(),
             'phone' => $this->faker->phoneNumber(),
             'location' => $this->faker->city(),
@@ -63,8 +63,7 @@ class UserFactory extends Factory
     public function admin(): self
     {
         return $this->state(fn () => [
-            'role' => 'admin',
-            'user_type' => 'both',
+            'user_type' => 'admin',
         ]);
     }
 }

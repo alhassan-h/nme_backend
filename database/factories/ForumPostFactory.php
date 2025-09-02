@@ -20,6 +20,8 @@ class ForumPostFactory extends Factory
             'category' => $this->faker->randomElement($categories),
             'tags' => $this->faker->words(3),
             'user_id' => User::factory()->create()->id,
+            'views' => $this->faker->numberBetween(0, 1000),
+            'replies_count' => $this->faker->numberBetween(0, 50),
             'created_at' => $this->faker->dateTimeBetween('-3 months'),
         ];
     }

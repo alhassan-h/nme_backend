@@ -67,4 +67,14 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Product::class, 'favorites')->withTimestamps();
     }
+
+    public function forumPosts()
+    {
+        return $this->hasMany(ForumPost::class);
+    }
+
+    public function forumReplies()
+    {
+        return $this->hasMany(ForumReply::class);
+    }
 }

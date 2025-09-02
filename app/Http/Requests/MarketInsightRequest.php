@@ -18,6 +18,9 @@ class MarketInsightRequest extends FormRequest
             'content' => ['required', 'string'],
             'category' => ['required', 'string', 'max:100'],
             'featured' => ['nullable', 'boolean'],
+            'price_trend' => ['nullable', 'string', 'max:50'],
+            'market_volume' => ['nullable', 'string', 'max:50'],
+            'investor_confidence' => ['nullable', 'string', 'max:50'],
         ];
     }
 }

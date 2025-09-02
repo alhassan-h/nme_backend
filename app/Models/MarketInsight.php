@@ -14,6 +14,9 @@ class MarketInsight extends Model
         'content',
         'category',
         'featured',
+        'price_trend',
+        'market_volume',
+        'investor_confidence',
     ];
 
     protected $casts = [

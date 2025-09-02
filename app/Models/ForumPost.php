@@ -17,6 +17,8 @@ class ForumPost extends Model
         'category',
         'tags',
         'user_id',
+        'views',
+        'replies_count',
     ];
 
     protected $casts = [
@@ -30,6 +32,6 @@ class ForumPost extends Model
 
     public function replies(): HasMany
     {
-        return $this->hasMany(ForumReply::class);
+        return $this->hasMany(ForumReply::class, 'post_id');
     }
 }

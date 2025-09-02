@@ -59,4 +59,32 @@ class ForumController extends Controller
 
         return response()->json($reply, Response::HTTP_CREATED);
     }
+
+    public function stats(): JsonResponse
+    {
+        $stats = $this->forumService->getStats();
+
+        return response()->json($stats);
+    }
+
+    public function categories(): JsonResponse
+    {
+        $categories = $this->forumService->getCategories();
+
+        return response()->json($categories);
+    }
+
+    public function topContributors(): JsonResponse
+    {
+        $contributors = $this->forumService->getTopContributors();
+
+        return response()->json($contributors);
+    }
+
+    public function incrementViews(ForumPost $post): JsonResponse
+    {
+        $this->forumService->incrementViewCount($post);
+
+        return response()->json(['message' => 'View count incremented']);
+    }
 }

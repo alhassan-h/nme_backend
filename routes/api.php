@@ -62,6 +62,10 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::get('forum/posts', [ForumController::class, 'index'])->name('forum.posts.index');
 Route::get('forum/posts/{post}', [ForumController::class, 'show'])->name('forum.posts.show');
 Route::get('forum/posts/{post}/replies', [ForumController::class, 'replies'])->name('forum.posts.replies');
+Route::get('forum/stats', [ForumController::class, 'stats'])->name('forum.stats');
+Route::get('forum/categories', [ForumController::class, 'categories'])->name('forum.categories');
+Route::get('forum/top-contributors', [ForumController::class, 'topContributors'])->name('forum.top-contributors');
+Route::post('forum/posts/{post}/views', [ForumController::class, 'incrementViews'])->name('forum.posts.increment-views');
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('forum/posts', [ForumController::class, 'store'])->name('forum.posts.store');
     Route::post('forum/posts/{post}/replies', [ForumController::class, 'storeReply'])->name('forum.posts.replies.store');

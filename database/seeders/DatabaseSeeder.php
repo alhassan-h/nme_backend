@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             UserSeeder::class,
+            MineralCategorySeeder::class,
             ProductSeeder::class,
             MarketInsightSeeder::class,
             ForumSeeder::class,

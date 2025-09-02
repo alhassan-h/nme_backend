@@ -18,7 +18,6 @@ return new class extends Migration
             $table->string('location');
             $table->text('description')->nullable();
             $table->integer('views')->default(0);
-            $table->integer('likes_count')->default(0);
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->timestamps();
 

@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ForumController;
 use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\MarketInsightController;
+use App\Http\Controllers\MineralCategoryController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\UserController;
@@ -25,6 +26,9 @@ Route::prefix('auth')->group(function () {
 // Newsletter subscription
 Route::post('newsletter/subscribe', [NewsletterController::class, 'subscribe'])->name('newsletter.subscribe');
 
+// Mineral Categories
+Route::get('mineral-categories', [MineralCategoryController::class, 'index'])->name('mineral-categories.index');
+
 // Public Product Routes
 Route::get('products', [ProductController::class, 'index'])->name('products.index');
 Route::get('products/{id}', [ProductController::class, 'show'])->name('products.show');
@@ -34,6 +38,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('products', [ProductController::class, 'store'])->name('products.store');
     Route::put('products/{product}', [ProductController::class, 'update'])->name('products.update');
     Route::delete('products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
+    Route::post('products/{product}/duplicate', [ProductController::class, 'duplicate'])->name('products.duplicate');
     Route::post('products/{product}/favorite', [ProductController::class, 'toggleFavorite'])->name('products.toggleFavorite');
     Route::post('products/{product}/view', [ProductController::class, 'incrementView'])->name('products.incrementView');
 });

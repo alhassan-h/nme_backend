@@ -25,22 +25,21 @@ class AuthController extends Controller
 
     public function login(LoginRequest $request): JsonResponse
     {
-        // Return mock data as per context for demo purposes
+        $credentials = $request->only('email', 'password');
+
+        if (!Auth::guard('web')->attempt($credentials)) {
+            return response()->json([
+                'message' => 'Invalid credentials',
+            ], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $user = Auth::guard('web')->user();
+        $token = $user->createToken('api-token')->plainTextToken;
+
         return response()->json([
-            'message' => 'Login successful (mock)',
-            'token' => 'mock-token-string',
-            'user' => [
-                'id' => 1,
-                'name' => 'Mock User',
-                'email' => 'mockuser@nme.com',
-                'role' => 'user',
-                'user_type' => 'buyer',
-                'company' => null,
-                'phone' => null,
-                'location' => null,
-                'verified' => true,
-                'created_at' => now()->toDateTimeString(),
-            ],
+            'message' => 'Login successful',
+            'token' => $token,
+            'user' => $user,
         ], Response::HTTP_OK);
     }
 

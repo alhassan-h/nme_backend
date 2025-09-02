@@ -18,7 +18,6 @@ class ForumController extends Controller
     public function __construct(ForumService $forumService)
     {
         $this->forumService = $forumService;
-        $this->middleware('auth:sanctum')->only(['store', 'storeReply']);
     }
 
     public function index(Request $request): JsonResponse

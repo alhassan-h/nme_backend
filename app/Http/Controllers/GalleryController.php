@@ -16,7 +16,6 @@ class GalleryController extends Controller
     public function __construct(GalleryService $galleryService)
     {
         $this->galleryService = $galleryService;
-        $this->middleware('auth:sanctum')->only(['store', 'toggleLike', 'incrementView']);
     }
 
     public function index(Request $request): JsonResponse

@@ -18,9 +18,6 @@ class AdminController extends Controller
     public function __construct(AdminService $adminService)
     {
         $this->adminService = $adminService;
-
-        $this->middleware('auth:sanctum');
-        $this->middleware('can:admin-access');
     }
 
     public function dashboardStats(): JsonResponse

@@ -18,8 +18,6 @@ class ProductController extends Controller
     public function __construct(ProductService $productService)
     {
         $this->productService = $productService;
-
-        $this->middleware('auth:sanctum')->only(['store', 'update', 'destroy', 'toggleFavorite', 'incrementView']);
     }
 
     public function index(Request $request): JsonResponse
@@ -73,5 +71,12 @@ class ProductController extends Controller
         $this->productService->incrementViews($product);
 
         return response()->json(null, Response::HTTP_NO_CONTENT);
+    }
+
+    public function duplicate(Product $product): JsonResponse
+    {
+        $duplicatedProduct = $this->productService->duplicateProduct($product);
+
+        return response()->json($duplicatedProduct, Response::HTTP_CREATED);
     }
 }

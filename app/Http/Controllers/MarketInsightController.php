@@ -16,8 +16,6 @@ class MarketInsightController extends Controller
     public function __construct(MarketInsightService $insightService)
     {
         $this->insightService = $insightService;
-        $this->middleware('auth:sanctum')->only(['store', 'update', 'destroy']);
-        $this->middleware('can:admin-access')->only(['store', 'update', 'destroy']);
     }
 
     public function index(Request $request): JsonResponse

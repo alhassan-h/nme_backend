@@ -26,24 +26,36 @@ class Product extends Model
         'location',
         'images',
         'seller_id',
+        'mineral_category_id',
         'status',
         'views',
+        'min_order',
+        'specifications',
+        'featured',
     ];
 
     protected $casts = [
         'images' => 'array',
         'price' => 'float',
         'views' => 'integer',
+        'specifications' => 'array',
+        'featured' => 'boolean',
     ];
 
     protected $attributes = [
         'status' => self::STATUS_PENDING,
         'views' => 0,
+        'featured' => false,
     ];
 
     public function seller(): BelongsTo
     {
         return $this->belongsTo(User::class, 'seller_id');
+    }
+
+    public function mineralCategory(): BelongsTo
+    {
+        return $this->belongsTo(MineralCategory::class, 'mineral_category_id');
     }
 
     public function favoritedBy(): BelongsToMany

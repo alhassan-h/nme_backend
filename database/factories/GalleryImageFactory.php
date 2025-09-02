@@ -27,7 +27,6 @@ class GalleryImageFactory extends Factory
             'location' => $this->faker->city(),
             'description' => $this->faker->sentence(),
             'views' => $this->faker->numberBetween(0, 1000),
-            'likes_count' => $this->faker->numberBetween(0, 300),
             'user_id' => User::factory()->create()->id,
             'created_at' => $this->faker->dateTimeBetween('-4 months'),
         ];

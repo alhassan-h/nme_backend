@@ -22,7 +22,7 @@ class ProductService
         $page = isset($filters['page']) ? (int) $filters['page'] : 1;
         $perPage = isset($filters['per_page']) ? (int) $filters['per_page'] : 15;
 
-        $query = Product::with('seller')
+        $query = Product::with(['seller', 'mineralCategory'])
             ->where('status', Product::STATUS_ACTIVE);
 
         $query->filter($filters);
@@ -32,7 +32,7 @@ class ProductService
 
     public function getProductById(int $id): ?Product
     {
-        return Product::with('seller')->find($id);
+        return Product::with(['seller', 'mineralCategory'])->find($id);
     }
 
     /**
@@ -61,9 +61,13 @@ class ProductService
         $product->unit = $data['unit'];
         $product->location = $data['location'];
         $product->seller_id = $user->id;
+        $product->mineral_category_id = $data['mineral_category_id'] ?? null;
         $product->images = $imagePaths;
         $product->status = Product::STATUS_PENDING;
         $product->views = 0;
+        $product->min_order = $data['min_order'] ?? null;
+        $product->specifications = $data['specifications'] ?? null;
+        $product->featured = $data['featured'] ?? false;
         $product->save();
 
         ProductCreated::dispatch($product);
@@ -88,6 +92,9 @@ class ProductService
         if (isset($data['category'])) {
             $product->category = $data['category'];
         }
+        if (isset($data['mineral_category_id'])) {
+            $product->mineral_category_id = $data['mineral_category_id'];
+        }
         if (isset($data['price'])) {
             $product->price = $data['price'];
         }
@@ -99,6 +106,15 @@ class ProductService
         }
         if (isset($data['location'])) {
             $product->location = $data['location'];
+        }
+        if (isset($data['min_order'])) {
+            $product->min_order = $data['min_order'];
+        }
+        if (isset($data['specifications'])) {
+            $product->specifications = $data['specifications'];
+        }
+        if (isset($data['featured'])) {
+            $product->featured = $data['featured'];
         }
         if ($images) {
             $imagePaths = $product->images ?: [];
@@ -131,17 +147,40 @@ class ProductService
 
     public function getUserProducts(int $userId, int $perPage, int $page): LengthAwarePaginator
     {
-        return Product::with('seller')
+        return Product::with(['seller', 'mineralCategory'])
             ->where('seller_id', $userId)
             ->paginate($perPage, ['*'], 'page', $page);
     }
 
     public function getUserFavoriteProducts(int $userId, int $perPage, int $page): LengthAwarePaginator
     {
-        return Product::with('seller')
+        return Product::with(['seller', 'mineralCategory'])
             ->whereHas('favoritedBy', function ($query) use ($userId) {
                 $query->where('user_id', $userId);
             })
             ->paginate($perPage, ['*'], 'page', $page);
+    }
+
+    public function duplicateProduct(Product $product): Product
+    {
+        $duplicatedProduct = new Product();
+        $duplicatedProduct->title = $product->title . ' (Copy)';
+        $duplicatedProduct->description = $product->description;
+        $duplicatedProduct->category = $product->category;
+        $duplicatedProduct->mineral_category_id = $product->mineral_category_id;
+        $duplicatedProduct->price = $product->price;
+        $duplicatedProduct->quantity = $product->quantity;
+        $duplicatedProduct->unit = $product->unit;
+        $duplicatedProduct->location = $product->location;
+        $duplicatedProduct->seller_id = $product->seller_id;
+        $duplicatedProduct->images = $product->images;
+        $duplicatedProduct->status = Product::STATUS_PENDING;
+        $duplicatedProduct->views = 0;
+        $duplicatedProduct->min_order = $product->min_order;
+        $duplicatedProduct->specifications = $product->specifications;
+        $duplicatedProduct->featured = $product->featured;
+        $duplicatedProduct->save();
+
+        return $duplicatedProduct->load('seller');
     }
 }

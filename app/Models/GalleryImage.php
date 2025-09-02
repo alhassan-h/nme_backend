@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class GalleryImage extends Model
 {
@@ -16,18 +17,15 @@ class GalleryImage extends Model
         'location',
         'description',
         'views',
-        'likes_count',
         'user_id',
     ];
 
     protected $casts = [
         'views' => 'integer',
-        'likes_count' => 'integer',
     ];
 
     protected $attributes = [
         'views' => 0,
-        'likes_count' => 0,
     ];
 
     public function uploader(): BelongsTo
@@ -35,29 +33,21 @@ class GalleryImage extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    public function likes(): HasMany
+    {
+        return $this->hasMany(GalleryImageLike::class, 'gallery_image_id');
+    }
+
     public function toggleLike(int $userId): bool
     {
-        $liked = \DB::table('gallery_image_likes')
-            ->where('gallery_image_id', $this->id)
-            ->where('user_id', $userId)
-            ->exists();
+        $existingLike = $this->likes()->where('user_id', $userId)->first();
 
-        if ($liked) {
-            \DB::table('gallery_image_likes')
-                ->where('gallery_image_id', $this->id)
-                ->where('user_id', $userId)
-                ->delete();
-            $this->decrement('likes_count');
-            return false;
+        if ($existingLike) {
+            $existingLike->delete();
+            return false; // Unliked
         } else {
-            \DB::table('gallery_image_likes')->insert([
-                'gallery_image_id' => $this->id,
-                'user_id' => $userId,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-            $this->increment('likes_count');
-            return true;
+            $this->likes()->create(['user_id' => $userId]);
+            return true; // Liked
         }
     }
 

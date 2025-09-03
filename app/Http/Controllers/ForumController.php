@@ -33,7 +33,11 @@ class ForumController extends Controller
 
     public function show(ForumPost $post): JsonResponse
     {
-        return response()->json($post->load('author'));
+        $postData = $post->load('author', 'replies');
+        $postArray = $postData->toArray();
+        $postArray['replies_count'] = $postData->replies->count();
+
+        return response()->json($postArray);
     }
 
     public function store(ForumPostCreateRequest $request): JsonResponse
@@ -41,7 +45,10 @@ class ForumController extends Controller
         $user = Auth::user();
         $post = $this->forumService->createPost($request->validated(), $user);
 
-        return response()->json($post, Response::HTTP_CREATED);
+        $postArray = $post->toArray();
+        $postArray['replies_count'] = $post->replies->count();
+
+        return response()->json($postArray, Response::HTTP_CREATED);
     }
 
     public function replies(ForumPost $post): JsonResponse

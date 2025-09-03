@@ -19,7 +19,7 @@ class ForumReplyFactory extends Factory
         return [
             'content' => $this->faker->sentence(),
             'parent_id' => null, // We'll handle nested replies separately if needed.
-            'post_id' => ForumPost::factory()->create()->id,
+            // 'post_id' => ForumPost::factory()->create()->id,
             'user_id' => $user->id,
             'created_at' => $this->faker->dateTimeBetween('-2 months'),
         ];

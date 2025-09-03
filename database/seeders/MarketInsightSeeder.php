@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\MarketInsight;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class MarketInsightSeeder extends Seeder
@@ -102,7 +103,7 @@ class MarketInsightSeeder extends Seeder
         ];
 
         foreach ($insights as $insightData) {
-            MarketInsight::create($insightData);
+            MarketInsight::factory()->create($insightData);
         }
     }
 }

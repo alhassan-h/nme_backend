@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\MarketInsight;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class MarketInsightFactory extends Factory
@@ -14,6 +15,7 @@ class MarketInsightFactory extends Factory
         $categories = ['Mining', 'Market Trends', 'Regulations', 'Investments'];
 
         return [
+            'user_id' => User::inRandomOrder()->first()->id,
             'title' => $this->faker->sentence(),
             'content' => $this->faker->paragraphs(3, true),
             'category' => $this->faker->randomElement($categories),

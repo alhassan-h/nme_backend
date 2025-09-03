@@ -10,12 +10,12 @@ class MarketInsightService
 {
     public function paginateInsights(int $perPage, int $page): LengthAwarePaginator
     {
-        return MarketInsight::orderByDesc('created_at')->paginate($perPage, ['*'], 'page', $page);
+        return MarketInsight::with('user')->orderByDesc('created_at')->paginate($perPage, ['*'], 'page', $page);
     }
 
     public function getById(int $id): ?MarketInsight
     {
-        return MarketInsight::find($id);
+        return MarketInsight::with('user')->find($id);
     }
 
     public function create(array $attributes): MarketInsight

@@ -12,10 +12,7 @@ class ForumService
 {
     public function getPosts(?string $category, int $perPage, int $page): LengthAwarePaginator
     {
-        $query = ForumPost::with('author')
-            ->select(['forum_posts.*'])
-            ->selectRaw('(SELECT COUNT(*) FROM forum_replies WHERE forum_replies.post_id = forum_posts.id) as replies')
-            ->selectRaw('views as views')
+        $query = ForumPost::with('author', 'replies')
             ->orderByDesc('created_at');
 
         if ($category) {
@@ -34,7 +31,7 @@ class ForumService
                 'tags' => $post->tags,
                 'user_id' => $post->user_id,
                 'views' => $post->views,
-                'replies' => $post->replies,
+                'replies' => $post->replies->count(),
                 'author' => $post->author,
                 'created_at' => $post->created_at,
                 'updated_at' => $post->updated_at,
@@ -55,14 +52,11 @@ class ForumService
         $post->category = $attributes['category'];
         $post->tags = $attributes['tags'] ?? [];
         $post->user_id = $user->id;
-        $a = $post->save();
-        
-        \Log::info('Created forum post', $post->load('author')->toArray());
-
+        $post->save();
 
         ForumPostCreated::dispatch($post);
 
-        return $post->load('author');
+        return $post->load('author', 'replies');
     }
 
     /**
@@ -96,7 +90,7 @@ class ForumService
         })->toArray();
     }
 
-    public function createReply(ForumPost $post, array $attributes, User $user): ForumReply
+    public function createReply(ForumPost $post, array $attributes, User $user): array
     {
         $reply = new ForumReply();
         $reply->content = $attributes['content'];
@@ -105,7 +99,16 @@ class ForumService
         $reply->user_id = $user->id;
         $reply->save();
 
-        return $reply->load('user', 'parent');
+        $replyWithRelations = $reply->load('user', 'parent');
+
+        // Transform to match frontend expectations (rename 'user' to 'author')
+        $replyArray = $replyWithRelations->toArray();
+        if (isset($replyArray['user'])) {
+            $replyArray['author'] = $replyArray['user'];
+            unset($replyArray['user']);
+        }
+
+        return $replyArray;
     }
 
     public function getStats(): array

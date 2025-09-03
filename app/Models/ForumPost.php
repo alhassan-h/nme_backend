@@ -18,7 +18,6 @@ class ForumPost extends Model
         'tags',
         'user_id',
         'views',
-        'replies_count',
     ];
 
     protected $casts = [
@@ -33,5 +32,10 @@ class ForumPost extends Model
     public function replies(): HasMany
     {
         return $this->hasMany(ForumReply::class, 'post_id');
+    }
+
+    public function getRepliesCountAttribute(): int
+    {
+        return $this->replies()->count();
     }
 }

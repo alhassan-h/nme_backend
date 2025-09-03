@@ -21,6 +21,9 @@ Route::prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login'])->name('auth.login');
     Route::post('register', [AuthController::class, 'register'])->name('auth.register');
     Route::post('forgot-password', [AuthController::class, 'forgotPassword'])->name('auth.forgot-password');
+    Route::get('login', function () {
+        return response()->json(['message' => 'Authentication required'], 401);
+    })->name('login');
 });
 
 // Newsletter subscription

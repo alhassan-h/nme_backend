@@ -19,10 +19,13 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [
-        'https://nme-frontend.vercel.app',  // Vercel frontend
-        'http://localhost:3000',            // for local dev
-    ],
+    // 'allowed_origins' => [
+    //     'https://nme-frontend.vercel.app',  // Vercel frontend
+    //     'https://nme-frontend-app-afc4f6bdf45f.herokuapp.com/',  // Heroku frontend
+    //     'http://localhost:3000',            // for local dev
+    // ],
+
+    'allowed_origins' => explode(',', env('CORS_ALLOWED_ORIGINS', 'http://localhost:3000')),
 
     'allowed_origins_patterns' => [],
 

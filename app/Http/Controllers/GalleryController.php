@@ -32,6 +32,13 @@ class GalleryController extends Controller
         return response()->json($paginated);
     }
 
+    public function show(int $id): JsonResponse
+    {
+        $image = $this->galleryService->getImage($id);
+
+        return response()->json($image);
+    }
+
     public function store(Request $request): JsonResponse
     {
         $request->validate([

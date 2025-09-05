@@ -46,6 +46,25 @@ class GalleryService
         return $paginated;
     }
 
+    public function getImage(int $id): array
+    {
+        $image = GalleryImage::with('uploader')
+            ->withCount('likes')
+            ->findOrFail($id);
+
+        return [
+            'id' => $image->id,
+            'title' => $image->description ?: 'Untitled Image',
+            'location' => $image->location ?: 'Unknown Location',
+            'category' => $image->category,
+            'image' => $image->file_path,
+            'views' => $image->views,
+            'likes' => $image->likes->count(),
+            'contributor' => $image->uploader->name ?? 'Anonymous',
+            'created_at' => $image->created_at,
+        ];
+    }
+
     public function uploadImage(UploadedFile $file, array $metadata, User $uploader): GalleryImage
     {
         $filePath = $file->store('gallery', 'public');

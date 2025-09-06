@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Events\ProductCreated;
 use App\Models\Product;
 use App\Models\User;
+use App\Models\MineralCategory;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
@@ -52,16 +53,24 @@ class ProductService
             }
         }
 
+        // Find mineral category by name if category is provided
+        $mineralCategoryId = null;
+        if (isset($data['category'])) {
+            $mineralCategory = MineralCategory::where('name', $data['category'])->first();
+            $mineralCategoryId = $mineralCategory ? $mineralCategory->id : null;
+        } elseif (isset($data['mineral_category_id'])) {
+            $mineralCategoryId = $data['mineral_category_id'];
+        }
+
         $product = new Product();
         $product->title = $data['title'];
         $product->description = $data['description'];
-        $product->category = $data['category'];
         $product->price = $data['price'];
         $product->quantity = $data['quantity'];
         $product->unit = $data['unit'];
         $product->location = $data['location'];
         $product->seller_id = $user->id;
-        $product->mineral_category_id = $data['mineral_category_id'] ?? null;
+        $product->mineral_category_id = $mineralCategoryId;
         $product->images = $imagePaths;
         $product->status = Product::STATUS_PENDING;
         $product->views = 0;

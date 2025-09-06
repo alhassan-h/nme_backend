@@ -19,7 +19,6 @@ class Product extends Model
     protected $fillable = [
         'title',
         'description',
-        'category',
         'price',
         'quantity',
         'unit',
@@ -66,7 +65,9 @@ class Product extends Model
     public function scopeFilter(Builder $query, array $filters): Builder
     {
         if (!empty($filters['category'])) {
-            $query->where('category', $filters['category']);
+            $query->whereHas('mineralCategory', function (Builder $q) use ($filters) {
+                $q->where('name', $filters['category']);
+            });
         }
 
         if (!empty($filters['location'])) {

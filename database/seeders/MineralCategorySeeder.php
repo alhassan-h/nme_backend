@@ -46,6 +46,38 @@ class MineralCategorySeeder extends Seeder
                 'name' => 'Copper',
                 'icon' => '🟤',
             ],
+            [
+                'name' => 'Diamond',
+                'icon' => '💎',
+            ],
+            [
+                'name' => 'Gemstones',
+                'icon' => '💍',
+            ],
+            [
+                'name' => 'Salt',
+                'icon' => '🧂',
+            ],
+            [
+                'name' => 'Gypsum',
+                'icon' => '🏗️',
+            ],
+            [
+                'name' => 'Bauxite',
+                'icon' => '⚙️',
+            ],
+            [
+                'name' => 'Uranium',
+                'icon' => '☢️',
+            ],
+            [
+                'name' => 'Oil',
+                'icon' => '🛢️',
+            ],
+            [
+                'name' => 'Gas',
+                'icon' => '🔥',
+            ],
         ];
 
         foreach ($categories as $category) {

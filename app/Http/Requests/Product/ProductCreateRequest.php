@@ -23,6 +23,7 @@ class ProductCreateRequest extends FormRequest
             'location' => ['required', 'string', 'max:100'],
             'images' => ['required', 'array', 'min:1', 'max:5'],
             'images.*' => ['file', 'image', 'max:5120'],
+            'mineral_category_id' => ['nullable', 'integer', 'exists:mineral_categories,id'],
         ];
     }
 }

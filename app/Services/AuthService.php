@@ -13,12 +13,16 @@ class AuthService
 {
     public function registerUser(array $attributes): User
     {
+        // Handle name from first_name and last_name if name is not provided
+        $name = $attributes['name'] ?? ($attributes['first_name'] . ' ' . $attributes['last_name']);
+        $company = $attributes['company'] ?? $attributes['company_name'] ?? null;
+
         $user = User::create([
-            'name' => $attributes['name'],
+            'name' => $name,
             'email' => $attributes['email'],
             'password' => Hash::make($attributes['password']),
             'user_type' => $attributes['user_type'],
-            'company' => $attributes['company'] ?? null,
+            'company' => $company,
             'phone' => $attributes['phone'] ?? null,
             'location' => $attributes['location'] ?? null,
             'verified' => false,

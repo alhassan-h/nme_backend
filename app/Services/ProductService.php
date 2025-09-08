@@ -98,11 +98,15 @@ class ProductService
         if (isset($data['description'])) {
             $product->description = $data['description'];
         }
-        if (isset($data['category'])) {
-            $product->category = $data['category'];
-        }
         if (isset($data['mineral_category_id'])) {
             $product->mineral_category_id = $data['mineral_category_id'];
+        }
+        // Handle legacy category field by converting to mineral_category_id
+        elseif (isset($data['category'])) {
+            $mineralCategory = MineralCategory::where('name', $data['category'])->first();
+            if ($mineralCategory) {
+                $product->mineral_category_id = $mineralCategory->id;
+            }
         }
         if (isset($data['price'])) {
             $product->price = $data['price'];
@@ -124,6 +128,9 @@ class ProductService
         }
         if (isset($data['featured'])) {
             $product->featured = $data['featured'];
+        }
+        if (isset($data['status'])) {
+            $product->status = $data['status'];
         }
         if ($images) {
             $imagePaths = $product->images ?: [];

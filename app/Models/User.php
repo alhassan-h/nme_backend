@@ -13,6 +13,10 @@ class User extends Authenticatable
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
 
+    public const ROLE_BUYER = 'buyer';
+    public const ROLE_SELLER = 'seller';
+    public const ROLE_ADMIN = 'admin';
+
     /**
      * The attributes that are mass assignable.
      *
@@ -84,5 +88,20 @@ class User extends Authenticatable
     public function getUserTypeAttribute()
     {
         return $this->attributes['user_type'];
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->user_type === self::ROLE_ADMIN;
+    }
+
+    public function isSeller(): bool
+    {
+        return $this->user_type === self::ROLE_SELLER;
+    }
+
+    public function isBuyer(): bool
+    {
+        return $this->user_type === self::ROLE_BUYER;
     }
 }

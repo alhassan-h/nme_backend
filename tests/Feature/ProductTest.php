@@ -107,12 +107,73 @@ class ProductTest extends TestCase
 
     public function test_increment_view_endpoint()
     {
-        $user = User::factory()->create();
+        $user = User::factory();
         $product = Product::factory()->create();
         Sanctum::actingAs($user);
 
         $response = $this->postJson("/api/products/{$product->id}/view");
 
         $response->assertStatus(204);
+    }
+
+    public function test_seller_can_mark_product_as_sold()
+    {
+        $user = User::factory()->seller()->create();
+        $product = Product::factory()->create(['seller_id' => $user->id, 'status' => Product::STATUS_ACTIVE]);
+        Sanctum::actingAs($user);
+
+        $response = $this->putJson("/api/products/{$product->id}", ['status' => Product::STATUS_SOLD]);
+
+        $response->assertStatus(200);
+        $this->assertDatabaseHas('products', ['id' => $product->id, 'status' => Product::STATUS_SOLD]);
+    }
+
+    public function test_seller_cannot_mark_product_as_active()
+    {
+        $user = User::factory()->seller()->create();
+        $product = Product::factory()->create(['seller_id' => $user->id, 'status' => Product::STATUS_PENDING]);
+        Sanctum::actingAs($user);
+
+        $response = $this->putJson("/api/products/{$product->id}", ['status' => Product::STATUS_ACTIVE]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['status']);
+    }
+
+    public function test_non_owner_cannot_change_product_status()
+    {
+        $owner = User::factory()->seller()->create();
+        $otherUser = User::factory()->seller()->create();
+        $product = Product::factory()->create(['seller_id' => $owner->id, 'status' => Product::STATUS_ACTIVE]);
+        Sanctum::actingAs($otherUser);
+
+        $response = $this->putJson("/api/products/{$product->id}", ['status' => Product::STATUS_SOLD]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['status']);
+    }
+
+    public function test_admin_can_mark_product_as_active()
+    {
+        $admin = User::factory()->admin()->create();
+        $product = Product::factory()->create(['status' => Product::STATUS_PENDING]);
+        Sanctum::actingAs($admin);
+
+        $response = $this->putJson("/api/products/{$product->id}", ['status' => Product::STATUS_ACTIVE]);
+
+        $response->assertStatus(200);
+        $this->assertDatabaseHas('products', ['id' => $product->id, 'status' => Product::STATUS_ACTIVE]);
+    }
+
+    public function test_buyer_cannot_change_product_status()
+    {
+        $buyer = User::factory()->buyer()->create();
+        $product = Product::factory()->create(['status' => Product::STATUS_ACTIVE]);
+        Sanctum::actingAs($buyer);
+
+        $response = $this->putJson("/api/products/{$product->id}", ['status' => Product::STATUS_SOLD]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['status']);
     }
 }

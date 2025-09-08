@@ -66,4 +66,24 @@ class UserFactory extends Factory
             'user_type' => 'admin',
         ]);
     }
+
+    /**
+     * Indicate that the model is a seller user.
+     */
+    public function seller(): self
+    {
+        return $this->state(fn () => [
+            'user_type' => 'seller',
+        ]);
+    }
+
+    /**
+     * Indicate that the model is a buyer user.
+     */
+    public function buyer(): self
+    {
+        return $this->state(fn () => [
+            'user_type' => 'buyer',
+        ]);
+    }
 }

@@ -175,7 +175,6 @@ class ProductService
         $duplicatedProduct = new Product();
         $duplicatedProduct->title = $product->title . ' (Copy)';
         $duplicatedProduct->description = $product->description;
-        $duplicatedProduct->category = $product->category;
         $duplicatedProduct->mineral_category_id = $product->mineral_category_id;
         $duplicatedProduct->price = $product->price;
         $duplicatedProduct->quantity = $product->quantity;

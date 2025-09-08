@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Product;
 
+use App\Models\Product;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class ProductUpdateRequest extends FormRequest
 {

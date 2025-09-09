@@ -124,6 +124,7 @@ class ProductSeeder extends Seeder
             [
                 'title' => 'Zinc Concentrate - Premium Quality',
                 'description' => 'Zinc concentrate with 55% zinc content. Ideal for metallurgical processes and manufacturing.',
+                'mineral_category_id' => $categories['Zinc'] ?? null,
                 'price' => 450000,
                 'quantity' => 30,
                 'unit' => 'ton',
@@ -166,6 +167,7 @@ class ProductSeeder extends Seeder
             [
                 'title' => 'Uranium Ore - Low Grade',
                 'description' => 'Uranium ore deposit with potential for nuclear energy applications. Requires specialized processing.',
+                'mineral_category_id' => $categories['Uranium'] ?? null,
                 'price' => 2500000,
                 'quantity' => 5,
                 'unit' => 'ton',

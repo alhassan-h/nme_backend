@@ -3,19 +3,55 @@
 namespace App\Services;
 
 use App\Events\InsightCreated;
+use App\Models\MarketInsightLike;
 use App\Models\MarketInsight;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 class MarketInsightService
 {
-    public function paginateInsights(int $perPage, int $page): LengthAwarePaginator
+    public function paginateInsights(array $filters = [], ?int $userId = null, int $perPage = 15, int $page = 1): LengthAwarePaginator
     {
-        return MarketInsight::with('user')->orderByDesc('created_at')->paginate($perPage, ['*'], 'page', $page);
+        $query = MarketInsight::with(['user', 'likes']);
+
+        if (!empty($filters['category'])) {
+            $query->where('category', $filters['category']);
+        }
+
+        if (isset($filters['exclude'])) {
+            $query->whereNotIn('id', (array) $filters['exclude']);
+        }
+
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('content', 'like', "%{$search}%")
+                  ->orWhere('summary', 'like', "%{$search}%");
+            });
+        }
+
+        return $query->orderByDesc('created_at')->paginate($perPage, ['*'], 'page', $page);
     }
 
     public function getById(int $id): ?MarketInsight
     {
         return MarketInsight::with('user')->find($id);
+    }
+
+    public function getRelated(int $id, int $limit = 5): Collection
+    {
+        $insight = $this->getById($id);
+        if (!$insight) {
+            return collect();
+        }
+
+        return MarketInsight::where('category', $insight->category)
+            ->where('id', '!=', $id)
+            ->with('user')
+            ->latest()
+            ->limit($limit)
+            ->get();
     }
 
     public function create(array $attributes): MarketInsight
@@ -31,6 +67,32 @@ class MarketInsightService
         $insight->update($attributes);
 
         return $insight;
+    }
+
+    public function toggleLike(int $insightId, int $userId): array
+    {
+        $like = MarketInsightLike::where('market_insight_id', $insightId)
+            ->where('user_id', $userId)
+            ->first();
+
+        if ($like) {
+            $like->delete();
+            $isLiked = false;
+        } else {
+            MarketInsightLike::create([
+                'market_insight_id' => $insightId,
+                'user_id' => $userId,
+            ]);
+            $isLiked = true;
+        }
+
+        $insight = MarketInsight::find($insightId);
+        $likesCount = $insight ? $insight->likes()->count() : 0;
+
+        return [
+            'is_liked' => $isLiked,
+            'likes_count' => $likesCount,
+        ];
     }
 
     public function delete(MarketInsight $insight): void

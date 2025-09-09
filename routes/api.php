@@ -77,6 +77,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('insights', [MarketInsightController::class, 'store'])->middleware('can:admin')->name('insights.store');
     Route::put('insights/{insight}', [MarketInsightController::class, 'update'])->middleware('can:admin')->name('insights.update');
     Route::delete('insights/{insight}', [MarketInsightController::class, 'destroy'])->middleware('can:admin')->name('insights.destroy');
+    Route::post('insights/{id}/like', [MarketInsightController::class, 'toggleLike'])->name('insights.toggleLike');
 });
 
 // Forum

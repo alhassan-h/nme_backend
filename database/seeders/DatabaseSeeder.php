@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             UnitSeeder::class,
             ProductSeeder::class,
             MarketInsightSeeder::class,
+            MarketInsightLikeSeeder::class,
             ForumSeeder::class,
             GallerySeeder::class,
         ]);

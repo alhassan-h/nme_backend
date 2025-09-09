@@ -86,6 +86,21 @@ class User extends Authenticatable
         return $this->hasMany(ForumReply::class);
     }
 
+    public function products()
+    {
+        return $this->hasMany(Product::class);
+    }
+
+    public function marketInsights()
+    {
+        return $this->hasMany(MarketInsight::class);
+    }
+
+    public function marketInsightLikes()
+    {
+        return $this->hasMany(MarketInsightLike::class);
+    }
+
     public function getUserTypeAttribute()
     {
         return $this->attributes['user_type'];

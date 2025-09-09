@@ -3,14 +3,16 @@
 namespace Database\Seeders;
 
 use App\Models\MarketInsight;
+use App\Models\MineralCategory;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class MarketInsightSeeder extends Seeder
 {
     /**
      * Run the database seeds.
-     */
+    */
     public function run(): void
     {
         $insights = [
@@ -19,6 +21,7 @@ class MarketInsightSeeder extends Seeder
                 'content' => 'Nigerian gold market shows strong performance with increased international demand driving prices up by 15% this quarter. The surge is attributed to global economic uncertainties and increased investment in precious metals. Local miners are reporting higher profit margins, with Kaduna and Zamfara states leading production increases. Industry experts predict continued growth through 2025 as international buyers seek stable investment options.',
                 'category' => 'Gold',
                 'featured' => true,
+                'tags' => json_encode(['market', 'gold']),
                 'price_trend' => '+15%',
                 'market_volume' => 'High',
                 'investor_confidence' => 'Strong',
@@ -30,6 +33,7 @@ class MarketInsightSeeder extends Seeder
                 'content' => 'The limestone industry is experiencing unprecedented growth driven by Nigeria\'s construction boom. Major cities like Lagos and Abuja are leading consumption, with infrastructure projects requiring massive amounts of construction materials. Ogun State limestone producers are reporting 40% increase in orders from cement manufacturers. The industry is expected to grow by 25% annually over the next three years.',
                 'category' => 'Limestone',
                 'featured' => true,
+                'tags' => json_encode(['market', 'industry', 'limestone', 'construction']),
                 'created_at' => now()->subDays(8),
                 'updated_at' => now()->subDays(8),
             ],
@@ -38,6 +42,7 @@ class MarketInsightSeeder extends Seeder
                 'content' => 'New government policies aim to boost sustainable tin mining practices while ensuring environmental compliance. The Nigerian Minerals and Mining Act amendments focus on reducing environmental impact while increasing production efficiency. Plateau State tin mines are implementing new technologies for better ore extraction and waste management. The regulations also include incentives for companies adopting green mining practices.',
                 'category' => 'Tin',
                 'featured' => false,
+                'tags' => json_encode(['regulations', 'mining', 'tin', 'environment']),
                 'created_at' => now()->subDays(10),
                 'updated_at' => now()->subDays(10),
             ],
@@ -46,6 +51,7 @@ class MarketInsightSeeder extends Seeder
                 'content' => 'Environmental concerns and renewable energy push create headwinds for coal sector, prices down 8% this month. The global shift towards clean energy is impacting Nigerian coal exports, with major international buyers reducing orders. However, domestic demand from manufacturing and power sectors remains strong. Industry analysts suggest diversification into cleaner coal technologies could help maintain market position.',
                 'category' => 'Coal',
                 'featured' => false,
+                'tags' => json_encode(['analysis', 'coal', 'commodities']),
                 'price_trend' => '-8%',
                 'market_volume' => 'Medium',
                 'investor_confidence' => 'Moderate',
@@ -57,6 +63,7 @@ class MarketInsightSeeder extends Seeder
                 'content' => 'Rising global steel demand creates new export opportunities for Nigerian iron ore producers. International steel manufacturers are seeking reliable suppliers as global supply chains face disruptions. Nigerian iron ore with its high-grade quality is gaining attention from Asian markets. Kogi and Nasarawa states are positioning themselves as key suppliers to meet growing international demand.',
                 'category' => 'Iron Ore',
                 'featured' => true,
+                'tags' => json_encode(['news', 'export', 'iron ore', 'commodities']),
                 'created_at' => now()->subDays(15),
                 'updated_at' => now()->subDays(15),
             ],
@@ -65,6 +72,7 @@ class MarketInsightSeeder extends Seeder
                 'content' => 'Copper prices remain stable despite global economic uncertainties. Nigerian copper deposits in Zamfara State show promising exploration results. The metal\'s importance in renewable energy technologies is driving steady demand. Local mining companies are investing in exploration and extraction technologies to capitalize on growing market opportunities.',
                 'category' => 'Copper',
                 'featured' => false,
+                'tags' => json_encode(['market', 'analysis', 'copper', 'commodities']),
                 'created_at' => now()->subDays(18),
                 'updated_at' => now()->subDays(18),
             ],
@@ -73,6 +81,7 @@ class MarketInsightSeeder extends Seeder
                 'content' => 'Zinc concentrate production increases as demand from galvanizing industry grows. Ebonyi State zinc mines are expanding operations to meet rising domestic and international demand. The metal\'s corrosion-resistant properties make it essential for construction and manufacturing sectors. New processing facilities are being established to improve product quality and meet international standards.',
                 'category' => 'Zinc',
                 'featured' => false,
+                'tags' => json_encode(['market', 'trends', 'zinc', 'commodities']),
                 'created_at' => now()->subDays(20),
                 'updated_at' => now()->subDays(20),
             ],
@@ -81,6 +90,7 @@ class MarketInsightSeeder extends Seeder
                 'content' => 'Lead ore prices stabilize after recent volatility. Taraba State lead deposits continue to attract investment from battery manufacturers. The growing electric vehicle market is creating new demand streams for lead-acid batteries. Mining companies are focusing on sustainable extraction methods to meet environmental standards while maximizing production efficiency.',
                 'category' => 'Lead',
                 'featured' => false,
+                'tags' => json_encode(['market', 'news', 'lead', 'analysis']),
                 'created_at' => now()->subDays(22),
                 'updated_at' => now()->subDays(22),
             ],
@@ -89,14 +99,16 @@ class MarketInsightSeeder extends Seeder
                 'content' => 'Bauxite production expected to increase 30% in 2025. Ogun State bauxite mines are ramping up operations to meet growing aluminum industry demand. New processing facilities are being commissioned to improve ore quality and extraction efficiency. The industry is attracting significant foreign investment as global aluminum demand continues to rise.',
                 'category' => 'Bauxite',
                 'featured' => true,
+                'tags' => json_encode(['market', 'forecast', 'bauxite', 'analysis']),
                 'created_at' => now()->subDays(25),
                 'updated_at' => now()->subDays(25),
             ],
             [
                 'title' => 'Mineral Export Strategy',
                 'content' => 'Government launches comprehensive mineral export strategy to boost foreign exchange earnings. The initiative focuses on value addition, quality improvement, and market diversification. Key minerals like gold, tin, and iron ore are prioritized for export promotion. The strategy includes incentives for exporters and infrastructure development to support increased mineral trade.',
-                'category' => 'General',
+                'category' => 'News',
                 'featured' => true,
+                'tags' => json_encode(['market', 'finance', 'gold', 'commodities']),
                 'created_at' => now()->subDays(28),
                 'updated_at' => now()->subDays(28),
             ],
@@ -104,6 +116,50 @@ class MarketInsightSeeder extends Seeder
 
         foreach ($insights as $insightData) {
             MarketInsight::factory()->create($insightData);
+        }
+
+        $this->random();
+
+        $this->command->info('Market insights seeded successfully.');
+    }
+
+    public function random(): void
+    {
+        $users = User::all();
+        if ($users->isEmpty()) {
+            return;
+        }
+
+        // get the name of mineral categories
+        $mineralCategories = MineralCategory::pluck('name')->toArray();
+        $tagOptions = ['market', 'finance', 'crypto', 'real-estate', 'commodities', 'analysis', 'economy', 'stocks', 'inflation', 'tech'];
+        $numInsights = 5;
+
+        for ($i = 0; $i < $numInsights; $i++) {
+            $mineralCategory = array_rand($mineralCategories);
+            $title = Str::title($mineralCategories[$mineralCategory] . ' Market Update ' . now()->format('M Y'));
+            $content = 'The ' . strtolower($mineralCategories[$mineralCategory]) . ' market is experiencing ' . ['growth', 'stability', 'challenges', 'opportunities'][array_rand(['growth', 'stability', 'challenges', 'opportunities'])] . ' due to recent economic factors. Analysis shows ' . ['positive', 'neutral', 'negative'][array_rand(['positive', 'neutral', 'negative'])] . ' trends with implications for investors.';
+            $featured = rand(0, 1);
+            $userId = $users->random()->id;
+            $numTags = rand(3, 6);
+            $category = $mineralCategories[$mineralCategory];
+            shuffle($tagOptions);
+            $selected = array_slice($tagOptions, 0, $numTags);
+            $tags = json_encode($selected);
+
+            MarketInsight::create([
+                'title' => $title,
+                'content' => $content,
+                'category' => $category,
+                'featured' => $featured,
+                'user_id' => $userId,
+                'price_trend' => ['+15%', '-8%', 'Stable'][rand(0, 2)],
+                'market_volume' => ['High', 'Medium', 'Low'][rand(0, 2)],
+                'investor_confidence' => ['Strong', 'Moderate', 'Weak'][rand(0, 2)],
+                'tags' => $tags,
+                'created_at' => now()->subDays(rand(1, 30)),
+                'updated_at' => now()->subDays(rand(1, 30)),
+            ]);
         }
     }
 }

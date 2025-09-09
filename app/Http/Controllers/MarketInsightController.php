@@ -20,7 +20,21 @@ class MarketInsightController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $paginated = $this->insightService->paginateInsights($request->get('per_page', 15), $request->get('page', 1));
+        $filters = [
+            'category' => $request->get('category'),
+            'exclude' => $request->get('exclude'),
+            'search' => $request->get('search'),
+        ];
+        $perPage = (int) $request->get('per_page', 15);
+        $page = (int) $request->get('page', 1);
+        $userId = auth()->check() ? auth()->id() : null;
+
+        $paginated = $this->insightService->paginateInsights($filters, $userId, $perPage, $page);
+
+        foreach ($paginated->items() as $insight) {
+            $insight->likes_count = $insight->likes->count();
+            $insight->is_liked = $userId && $insight->likes->contains('user_id', $userId);
+        }
 
         return response()->json($paginated);
     }
@@ -32,6 +46,13 @@ class MarketInsightController extends Controller
         if (!$insight) {
             return response()->json(['message' => 'Market Insight not found'], Response::HTTP_NOT_FOUND);
         }
+
+        $insight->load('likes');
+        $userId = auth()->check() ? auth()->id() : null;
+        $insight->likes_count = $insight->likes->count();
+        $insight->is_liked = $userId && $insight->likes->contains('user_id', $userId);
+        $insight->related = $this->insightService->getRelated($id, 5);
+        $insight->author = $insight->getAuthorAttribute();
 
         return response()->json($insight);
     }
@@ -55,5 +76,17 @@ class MarketInsightController extends Controller
         $this->insightService->delete($insight);
 
         return response()->json(null, Response::HTTP_NO_CONTENT);
+    }
+
+    public function toggleLike(int $id): JsonResponse
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $result = $this->insightService->toggleLike($id, $user->id);
+
+        return response()->json($result);
     }
 }

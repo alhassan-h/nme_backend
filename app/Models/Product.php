@@ -26,6 +26,8 @@ class Product extends Model
         'images',
         'seller_id',
         'mineral_category_id',
+        'location_id',
+        'unit_id',
         'status',
         'views',
         'min_order',
@@ -55,6 +57,16 @@ class Product extends Model
     public function mineralCategory(): BelongsTo
     {
         return $this->belongsTo(MineralCategory::class, 'mineral_category_id');
+    }
+
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(Location::class, 'location_id');
+    }
+
+    public function unit(): BelongsTo
+    {
+        return $this->belongsTo(Unit::class, 'unit_id');
     }
 
     public function favoritedBy(): BelongsToMany

@@ -4,10 +4,12 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ForumController;
 use App\Http\Controllers\GalleryController;
+use App\Http\Controllers\LocationController;
 use App\Http\Controllers\MarketInsightController;
 use App\Http\Controllers\MineralCategoryController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\UnitController;
 use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -31,6 +33,22 @@ Route::post('newsletter/subscribe', [NewsletterController::class, 'subscribe'])-
 
 // Mineral Categories
 Route::get('mineral-categories', [MineralCategoryController::class, 'index'])->name('mineral-categories.index');
+
+// Locations
+Route::get('locations', [LocationController::class, 'index'])->name('locations.index');
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('locations', [LocationController::class, 'store'])->middleware('can:admin')->name('locations.store');
+    Route::put('locations/{id}', [LocationController::class, 'update'])->middleware('can:admin')->name('locations.update');
+    Route::delete('locations/{id}', [LocationController::class, 'destroy'])->middleware('can:admin')->name('locations.destroy');
+});
+
+// Units
+Route::get('units', [UnitController::class, 'index'])->name('units.index');
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('units', [UnitController::class, 'store'])->middleware('can:admin')->name('units.store');
+    Route::put('units/{id}', [UnitController::class, 'update'])->middleware('can:admin')->name('units.update');
+    Route::delete('units/{id}', [UnitController::class, 'destroy'])->middleware('can:admin')->name('units.destroy');
+});
 
 // Public Product Routes
 Route::get('products', [ProductController::class, 'index'])->name('products.index');

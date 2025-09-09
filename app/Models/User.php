@@ -16,6 +16,7 @@ class User extends Authenticatable
     public const ROLE_BUYER = 'buyer';
     public const ROLE_SELLER = 'seller';
     public const ROLE_ADMIN = 'admin';
+    public const ROLE_BOTH = 'both';
 
     /**
      * The attributes that are mass assignable.
@@ -103,5 +104,10 @@ class User extends Authenticatable
     public function isBuyer(): bool
     {
         return $this->user_type === self::ROLE_BUYER;
+    }
+
+    public function isBoth(): bool
+    {
+        return $this->user_type === self::ROLE_BOTH;
     }
 }

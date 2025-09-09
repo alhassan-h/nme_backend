@@ -55,7 +55,7 @@ class ProductUpdateRequest extends FormRequest
                     $validator->errors()->add('status', 'Only administrators can activate products.');
                 }
 
-                if ($newStatus === Product::STATUS_SOLD && !$user->isSeller() && !$user->isAdmin()) {
+                if ($newStatus === Product::STATUS_SOLD && !$user->isSeller() && !$user->isBoth()) {
                     $validator->errors()->add('status', 'Only sellers can mark products as sold.');
                 }
 

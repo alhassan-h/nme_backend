@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ForumController;
 use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\LocationController;
@@ -68,6 +69,13 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->prefix('user')->group(function () {
     Route::get('products', [UserController::class, 'products'])->name('user.products');
     Route::get('favorites', [UserController::class, 'favorites'])->name('user.favorites');
+});
+
+// Dashboard
+Route::middleware('auth:sanctum')->prefix('dashboard')->group(function () {
+    Route::get('stats', [DashboardController::class, 'stats'])->name('dashboard.stats');
+    Route::get('activity', [DashboardController::class, 'recentActivity'])->name('dashboard.activity');
+    Route::get('revenue', [DashboardController::class, 'revenue'])->name('dashboard.revenue');
 });
 
 // Market Insights

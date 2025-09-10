@@ -40,6 +40,6 @@ class MarketInsight extends Model
 
     public function getAuthorAttribute(): string
     {
-        return $this->user->name ?? $this->user->username ?? 'Anonymous';
+        return $this->user ? trim($this->user->first_name . ' ' . $this->user->last_name) : 'Anonymous';
     }
 }

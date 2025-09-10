@@ -120,7 +120,6 @@ class MarketInsightSeeder extends Seeder
 
         $this->random();
 
-        $this->command->info('Market insights seeded successfully.');
     }
 
     public function random(): void

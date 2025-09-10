@@ -13,7 +13,8 @@ class UserSeeder extends Seeder
         User::firstOrCreate(
             ['email' => 'admin@nme.com'],
             [
-                'name' => 'Admin User',
+                'first_name' => 'Admin',
+                'last_name' => 'User',
                 'password' => bcrypt('password'),
                 'user_type' => 'admin',
                 'company' => 'NME Administration',
@@ -26,7 +27,8 @@ class UserSeeder extends Seeder
         // Create sample users for products
         $users = [
             [
-                'name' => 'John Adebayo',
+                'first_name' => 'John',
+                'last_name' => 'Adebayo',
                 'email' => 'john.adebayo@nme.com',
                 'password' => bcrypt('password'),
                 'user_type' => 'both',
@@ -36,7 +38,8 @@ class UserSeeder extends Seeder
                 'verified' => true,
             ],
             [
-                'name' => 'Sarah Okafor',
+                'first_name' => 'Sarah',
+                'last_name' => 'Okafor',
                 'email' => 'sarah.okafor@nme.com',
                 'password' => bcrypt('password'),
                 'user_type' => 'both',
@@ -46,7 +49,8 @@ class UserSeeder extends Seeder
                 'verified' => true,
             ],
             [
-                'name' => 'Michael Adamu',
+                'first_name' => 'Michael',
+                'last_name' => 'Adamu',
                 'email' => 'michael.adamu@nme.com',
                 'password' => bcrypt('password'),
                 'user_type' => 'both',
@@ -56,7 +60,8 @@ class UserSeeder extends Seeder
                 'verified' => true,
             ],
             [
-                'name' => 'Fatima Bello',
+                'first_name' => 'Fatima',
+                'last_name' => 'Bello',
                 'email' => 'fatima.bello@nme.com',
                 'password' => bcrypt('password'),
                 'user_type' => 'both',
@@ -66,7 +71,8 @@ class UserSeeder extends Seeder
                 'verified' => true,
             ],
             [
-                'name' => 'Emeka Nwachukwu',
+                'first_name' => 'Emeka',
+                'last_name' => 'Nwachukwu',
                 'email' => 'emeka.nwachukwu@nme.com',
                 'password' => bcrypt('password'),
                 'user_type' => 'both',
@@ -76,7 +82,8 @@ class UserSeeder extends Seeder
                 'verified' => true,
             ],
             [
-                'name' => 'Amina Yusuf',
+                'first_name' => 'Amina',
+                'last_name' => 'Yusuf',
                 'email' => 'amina.yusuf@nme.com',
                 'password' => bcrypt('password'),
                 'user_type' => 'both',

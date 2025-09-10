@@ -29,7 +29,6 @@ class RegisterRequest extends FormRequest
     protected function prepareForValidation()
     {
         $this->merge([
-            'name' => $this->first_name . ' ' . $this->last_name,
             'company' => $this->company_name,
         ]);
     }

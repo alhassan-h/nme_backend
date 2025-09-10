@@ -66,9 +66,12 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // User dashboard
-Route::middleware('auth:sanctum')->prefix('user')->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:60,1'])->prefix('user')->group(function () {
     Route::get('products', [UserController::class, 'products'])->name('user.products');
     Route::get('favorites', [UserController::class, 'favorites'])->name('user.favorites');
+    Route::put('profile', [UserController::class, 'updateProfile'])->name('user.profile.update');
+    Route::put('password', [UserController::class, 'changePassword'])->middleware('throttle:3,1')->name('user.password.change');
+    Route::post('avatar', [UserController::class, 'uploadAvatar'])->name('user.avatar.upload');
 });
 
 // Dashboard

@@ -38,7 +38,7 @@ class GalleryService
                 'image' => $image->file_path,
                 'views' => $image->views,
                 'likes' => $image->likes->count(),
-                'contributor' => $image->uploader->name ?? 'Anonymous',
+                'contributor' => $image->uploader ? trim($image->uploader->first_name . ' ' . $image->uploader->last_name) : 'Anonymous',
                 'created_at' => $image->created_at,
             ];
         });
@@ -60,7 +60,7 @@ class GalleryService
             'image' => $image->file_path,
             'views' => $image->views,
             'likes' => $image->likes->count(),
-            'contributor' => $image->uploader->name ?? 'Anonymous',
+            'contributor' => $image->uploader ? trim($image->uploader->first_name . ' ' . $image->uploader->last_name) : 'Anonymous',
             'created_at' => $image->created_at,
         ];
     }

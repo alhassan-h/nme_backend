@@ -37,7 +37,7 @@ class ForumService
                 'updated_at' => $post->updated_at,
                 'lastActivity' => $post->updated_at->diffForHumans(),
                 'isPinned' => false, // You can add a pinned field later if needed
-                'avatar' => $post->author ? "/avatars/{$post->author->name}.jpg" : null,
+                'avatar' => $post->author ? ($post->author->avatar ?: "/avatars/{$post->author->first_name}_{$post->author->last_name}.jpg") : null,
             ];
         });
 
@@ -138,17 +138,17 @@ class ForumService
 
     public function getTopContributors(int $limit = 10): array
     {
-        return User::select('users.id', 'users.name')
+        return User::select('users.id', 'users.first_name', 'users.last_name')
             ->selectRaw('COUNT(forum_posts.id) as posts_count')
             ->join('forum_posts', 'users.id', '=', 'forum_posts.user_id')
-            ->groupBy('users.id', 'users.name')
+            ->groupBy('users.id', 'users.first_name', 'users.last_name')
             ->orderByDesc('posts_count')
             ->limit($limit)
             ->get()
             ->map(function ($user) {
                 return [
                     'id' => $user->id,
-                    'name' => $user->name,
+                    'name' => trim($user->first_name . ' ' . $user->last_name),
                     'posts' => $user->posts_count,
                 ];
             })

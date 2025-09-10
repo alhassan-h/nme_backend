@@ -24,7 +24,6 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-        'name',
         'email',
         'password',
         'user_type',
@@ -32,10 +31,20 @@ class User extends Authenticatable
         'phone',
         'location',
         'verified',
+        'first_name',
+        'last_name',
+        'bio',
+        'website',
+        'avatar',
     ];
 
     protected $appends = [
         'userType',
+        'firstName',
+        'lastName',
+        'bio',
+        'website',
+        'avatar',
     ];
 
     /**
@@ -124,5 +133,45 @@ class User extends Authenticatable
     public function isBoth(): bool
     {
         return $this->user_type === self::ROLE_BOTH;
+    }
+
+    /**
+     * Get the first name attribute.
+     */
+    public function getFirstNameAttribute()
+    {
+        return $this->attributes['first_name'] ?? '';
+    }
+
+    /**
+     * Get the last name attribute.
+     */
+    public function getLastNameAttribute()
+    {
+        return $this->attributes['last_name'] ?? '';
+    }
+
+    /**
+     * Get the bio attribute.
+     */
+    public function getBioAttribute()
+    {
+        return $this->attributes['bio'] ?? '';
+    }
+
+    /**
+     * Get the website attribute.
+     */
+    public function getWebsiteAttribute()
+    {
+        return $this->attributes['website'] ?? '';
+    }
+
+    /**
+     * Get the avatar attribute.
+     */
+    public function getAvatarAttribute()
+    {
+        return $this->attributes['avatar'] ?? '';
     }
 }

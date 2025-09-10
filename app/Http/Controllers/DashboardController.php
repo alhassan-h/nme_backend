@@ -32,7 +32,7 @@ class DashboardController extends Controller
         ];
 
         if ($user->userType === 'seller' || $user->userType === 'both') {
-            $products = Product::where('user_id', $user->id)->get();
+            $products = Product::where('seller_id', $user->id)->get();
 
             $stats['listings'] = $products->count();
             $stats['active_listings'] = $products->where('status', 'active')->count();
@@ -57,7 +57,7 @@ class DashboardController extends Controller
 
         // Get recent product activities
         if ($user->userType === 'seller' || $user->userType === 'both') {
-            $productActivities = Product::where('user_id', $user->id)
+            $productActivities = Product::where('seller_id', $user->id)
                 ->orderBy('updated_at', 'desc')
                 ->limit($limit)
                 ->get()
@@ -131,12 +131,12 @@ class DashboardController extends Controller
         }
 
         // Calculate revenue from sold products
-        $totalRevenue = Product::where('user_id', $user->id)
+        $totalRevenue = Product::where('seller_id', $user->id)
             ->where('status', 'sold')
             ->sum('price');
 
         // Monthly revenue for the last 12 months
-        $monthlyRevenue = Product::where('user_id', $user->id)
+        $monthlyRevenue = Product::where('seller_id', $user->id)
             ->where('status', 'sold')
             ->where('updated_at', '>=', now()->subMonths(12))
             ->select(
@@ -156,7 +156,7 @@ class DashboardController extends Controller
             });
 
         // Yearly revenue
-        $yearlyRevenue = Product::where('user_id', $user->id)
+        $yearlyRevenue = Product::where('seller_id', $user->id)
             ->where('status', 'sold')
             ->where('updated_at', '>=', now()->subYear())
             ->sum('price');

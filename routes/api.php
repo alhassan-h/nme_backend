@@ -70,7 +70,7 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->prefix('user')->group(func
     Route::get('products', [UserController::class, 'products'])->name('user.products');
     Route::get('favorites', [UserController::class, 'favorites'])->name('user.favorites');
     Route::put('profile', [UserController::class, 'updateProfile'])->name('user.profile.update');
-    Route::put('password', [UserController::class, 'changePassword'])->middleware('throttle:3,1')->name('user.password.change');
+    Route::put('password', [UserController::class, 'changePassword'])->middleware('throttle:5,1')->name('user.password.change');
     Route::post('avatar', [UserController::class, 'uploadAvatar'])->name('user.avatar.upload');
 });
 

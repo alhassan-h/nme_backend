@@ -80,11 +80,17 @@ class UserController extends Controller
         $user = Auth::user();
 
         $validator = Validator::make($request->all(), [
-            'current_password' => 'required|string',
-            'password' => ['required', 'confirmed', Password::min(8)->mixedCase()->numbers()->symbols()],
+            'current_password' => 'required|string|min:1',
+            'password' => ['required', 'confirmed', Password::min(8)->mixedCase()->numbers()],
+            'password_confirmation' => 'required|string|min:8',
         ]);
 
         if ($validator->fails()) {
+            \Log::warning('Password change validation failed', [
+                'user_id' => $user->id,
+                'errors' => $validator->errors()->toArray()
+            ]);
+
             return response()->json([
                 'message' => 'Validation failed',
                 'errors' => $validator->errors()
@@ -93,20 +99,29 @@ class UserController extends Controller
 
         // Check current password
         if (!Hash::check($request->current_password, $user->password)) {
+
             return response()->json([
                 'message' => 'Current password is incorrect'
             ], 400);
         }
 
-        $user->update([
-            'password' => Hash::make($request->password)
-        ]);
+        try {
+            $user->update([
+                'password' => Hash::make($request->password)
+            ]);
 
-        // TODO: Send confirmation email
+            // TODO: Send confirmation email
+            
 
-        return response()->json([
-            'message' => 'Password changed successfully'
-        ]);
+            return response()->json([
+                'message' => 'Password changed successfully'
+            ]);
+        } catch (\Exception $e) {
+
+            return response()->json([
+                'message' => 'Failed to update password. Please try again.'
+            ], 500);
+        }
     }
 
     public function uploadAvatar(Request $request): JsonResponse

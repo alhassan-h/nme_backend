@@ -42,7 +42,7 @@ class DashboardController extends Controller
         }
 
         if ($user->userType === 'buyer' || $user->userType === 'both') {
-            $stats['saved_products'] = $user->favorites()->count();
+            $stats['saved_products'] = $user->favoriteProducts()->count();
         }
 
         return response()->json($stats);

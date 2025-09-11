@@ -124,5 +124,7 @@ Route::middleware(['auth:sanctum', 'can:admin'])->prefix('admin')->group(functio
     Route::get('products/pending', [AdminController::class, 'pendingProducts'])->name('admin.products.pending');
     Route::put('products/{id}/approve', [AdminController::class, 'approveProduct'])->name('admin.products.approve');
     Route::post('newsletters', [AdminController::class, 'createNewsletter'])->name('admin.newsletters.create');
+    Route::get('recent-activity', [AdminController::class, 'recentActivity'])->name('admin.recent.activity');
+    Route::get('pending-tasks', [AdminController::class, 'pendingTasks'])->name('admin.pending.tasks');
 });
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum')->name('auth.logout');

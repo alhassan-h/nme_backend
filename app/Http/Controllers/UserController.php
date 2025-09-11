@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\SendEmailVerification;
 use App\Models\User;
 use App\Services\ProductService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
@@ -160,5 +162,79 @@ class UserController extends Controller
         return response()->json([
             'message' => 'No file uploaded'
         ], 400);
+    }
+
+    public function sendEmailVerification(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+
+        if ($user->verified) {
+            return response()->json([
+                'message' => 'Email is already verified'
+            ], 400);
+        }
+
+        try {
+            Mail::to($user)->send(new SendEmailVerification($user));
+
+            return response()->json([
+                'message' => 'Verification email sent successfully'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to send verification email', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'message' => 'Failed to send verification email. Please try again.'
+            ], 500);
+        }
+    }
+
+    public function verifyEmail(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'token' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $user = Auth::user();
+
+        // Simple token verification (in production, use more secure method)
+        $expectedToken = sha1($user->email . $user->id . config('app.key'));
+
+        if ($request->token !== $expectedToken) {
+            return response()->json([
+                'message' => 'Invalid verification token'
+            ], 400);
+        }
+
+        if ($user->verified) {
+            return response()->json([
+                'message' => 'Email is already verified'
+            ], 400);
+        }
+
+        $user->update([
+            'verified' => true,
+            'email_verified_at' => now(),
+        ]);
+
+        \Log::info('Email verified successfully', [
+            'user_id' => $user->id,
+            'email' => $user->email,
+        ]);
+
+        return response()->json([
+            'message' => 'Email verified successfully',
+            'user' => $user->fresh()
+        ]);
     }
 }

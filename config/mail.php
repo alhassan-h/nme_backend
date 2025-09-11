@@ -53,6 +53,13 @@ return [
             'transport' => 'ses',
         ],
 
+        'mailgun' => [
+            'transport' => 'mailgun',
+            'domain' => env('MAIL_MAILER_MAILGUN_DOMAIN'),
+            'secret' => env('MAIL_MAILER_MAILGUN_SECRET'),
+            'endpoint' => env('MAIL_MAILER_MAILGUN_ENDPOINT', 'api.mailgun.net'),
+        ],
+
         'postmark' => [
             'transport' => 'postmark',
             // 'message_stream_id' => env('POSTMARK_MESSAGE_STREAM_ID'),

@@ -3,10 +3,14 @@
 namespace App\Services;
 
 use App\Events\UserRegistered;
+use App\Mail\SendPasswordReset;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AuthService
@@ -45,12 +49,70 @@ class AuthService
 
     public function sendPasswordResetLink(string $email): void
     {
-        $status = Password::sendResetLink(['email' => $email]);
+        $user = User::where('email', $email)->first();
 
-        if ($status !== Password::RESET_LINK_SENT) {
+        if (!$user) {
+            // Don't reveal if email exists or not for security
+            return;
+        }
+
+        // Generate a secure token
+        $token = Str::random(64);
+
+        // Store the token in the database
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $email],
+            [
+                'token' => Hash::make($token),
+                'created_at' => now(),
+            ]
+        );
+
+        // Send the custom email
+        Mail::to($user)->send(new SendPasswordReset($user, $token));
+    }
+
+    public function resetPassword(array $credentials): void
+    {
+        $user = User::where('email', $credentials['email'])->first();
+
+        if (!$user) {
             throw ValidationException::withMessages([
-                'email' => [trans($status)],
+                'email' => ['User not found.'],
             ]);
         }
+
+        // Get the token from database
+        $tokenRecord = DB::table('password_reset_tokens')
+            ->where('email', $credentials['email'])
+            ->first();
+
+        if (!$tokenRecord || !Hash::check($credentials['token'], $tokenRecord->token)) {
+            throw ValidationException::withMessages([
+                'token' => ['Invalid or expired token.'],
+            ]);
+        }
+
+        // Check if token is expired (1 hour)
+        if (now()->diffInMinutes($tokenRecord->created_at) > 60) {
+            throw ValidationException::withMessages([
+                'token' => ['Token has expired. Please request a new password reset.'],
+            ]);
+        }
+
+        // Update password
+        $user->update([
+            'password' => Hash::make($credentials['password']),
+        ]);
+
+        // Delete the token
+        DB::table('password_reset_tokens')->where('email', $credentials['email'])->delete();
+
+        // Log the password reset
+        \Log::info('Password reset successful', [
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'ip' => request()->ip(),
+        ]);
     }
 }

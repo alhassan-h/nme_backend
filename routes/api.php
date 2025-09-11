@@ -23,7 +23,8 @@ Route::get('/', function () {
 Route::prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login'])->name('auth.login');
     Route::post('register', [AuthController::class, 'register'])->name('auth.register');
-    Route::post('forgot-password', [AuthController::class, 'forgotPassword'])->name('auth.forgot-password');
+    Route::post('forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1')->name('auth.forgot-password');
+    Route::post('reset-password', [AuthController::class, 'resetPassword'])->name('auth.reset-password');
     Route::get('login', function () {
         return response()->json(['message' => 'Authentication required'], 401);
     })->name('login');
@@ -72,6 +73,8 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->prefix('user')->group(func
     Route::put('profile', [UserController::class, 'updateProfile'])->name('user.profile.update');
     Route::put('password', [UserController::class, 'changePassword'])->middleware('throttle:5,1')->name('user.password.change');
     Route::post('avatar', [UserController::class, 'uploadAvatar'])->name('user.avatar.upload');
+    Route::post('send-verification-email', [UserController::class, 'sendEmailVerification'])->middleware('throttle:3,1')->name('user.send-verification-email');
+    Route::post('verify-email', [UserController::class, 'verifyEmail'])->name('user.verify-email');
 });
 
 // Dashboard

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\MarketInsight;
 use App\Models\Newsletter;
 use App\Models\Product;
 use App\Models\User;
@@ -149,7 +150,7 @@ class AdminService
                 [
                     'task' => 'Update market insights',
                     'priority' => 'low',
-                    'count' => 3,
+                    'count' => MarketInsight::where('status', 'draft')->count(),
                 ],
                 [
                     'task' => 'Send newsletter campaign',
@@ -161,5 +162,91 @@ class AdminService
             // Return empty array if there's a database error
             return [];
         }
+    }
+
+    public function paginatedInsights(int $perPage, array $filters = []): LengthAwarePaginator
+    {
+        $query = MarketInsight::with('user', 'category');
+
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('content', 'like', "%{$search}%")
+                  ->orWhere('category', 'like', "%{$search}%");
+            });
+        }
+
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        if (!empty($filters['date_from'])) {
+            $query->where('created_at', '>=', $filters['date_from']);
+        }
+
+        if (!empty($filters['date_to'])) {
+            $query->where('created_at', '<=', $filters['date_to']);
+        }
+
+        $sortBy = $filters['sort_by'] ?? 'created_at';
+        $sortOrder = $filters['sort_order'] ?? 'desc';
+
+        return $query->orderBy($sortBy, $sortOrder)->paginate($perPage);
+    }
+
+    public function createInsight(array $data): MarketInsight
+    {
+        return MarketInsight::create($data)->load('user', 'category');
+    }
+
+    public function updateInsight(MarketInsight $insight, array $data): MarketInsight
+    {
+        $insight->update($data);
+        return $insight->load('user', 'category');
+    }
+
+    public function deleteInsight(MarketInsight $insight): bool
+    {
+        return $insight->delete();
+    }
+
+    public function publishInsight(MarketInsight $insight): MarketInsight
+    {
+        $insight->update([
+            'status' => 'published',
+            'published_at' => now(),
+        ]);
+        return $insight->load('user', 'category');
+    }
+
+    public function unpublishInsight(MarketInsight $insight): MarketInsight
+    {
+        $insight->update([
+            'status' => 'draft',
+            'published_at' => null,
+        ]);
+        return $insight->load('user', 'category');
+    }
+
+    public function bulkPublishInsights(array $ids): int
+    {
+        return MarketInsight::whereIn('id', $ids)->update([
+            'status' => 'published',
+            'published_at' => now(),
+        ]);
+    }
+
+    public function bulkUnpublishInsights(array $ids): int
+    {
+        return MarketInsight::whereIn('id', $ids)->update([
+            'status' => 'draft',
+            'published_at' => null,
+        ]);
+    }
+
+    public function bulkDeleteInsights(array $ids): int
+    {
+        return MarketInsight::whereIn('id', $ids)->delete();
     }
 }

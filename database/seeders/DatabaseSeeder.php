@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             LocationSeeder::class,
             UnitSeeder::class,
             ProductSeeder::class,
+            MarketInsightCategorySeeder::class,
             MarketInsightSeeder::class,
             MarketInsightLikeSeeder::class,
             ForumSeeder::class,

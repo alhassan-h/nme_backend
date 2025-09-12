@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Product;
 use App\Models\Newsletter;
+use App\Models\MarketInsight;
+use App\Models\MarketInsightCategory;
 use App\Services\AdminService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -186,6 +188,400 @@ class AdminController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve pending tasks',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function insights(Request $request): JsonResponse
+    {
+        try {
+            $perPage = (int) $request->get('per_page', 15);
+            $filters = $request->only(['search', 'status', 'date_from', 'date_to', 'sort_by', 'sort_order']);
+            $insights = $this->adminService->paginatedInsights($perPage, $filters);
+
+            return response()->json([
+                'success' => true,
+                'data' => $insights,
+                'message' => 'Insights retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve insights',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function showInsight(MarketInsight $insight): JsonResponse
+    {
+        try {
+            return response()->json([
+                'success' => true,
+                'data' => $insight->load('user', 'category'),
+                'message' => 'Insight retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve insight',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function createInsight(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'title' => 'required|string|max:255',
+                'content' => 'required|string',
+                'category' => 'required|string|max:255',
+                'featured' => 'boolean',
+                'tags' => 'array',
+                'price_trend' => 'nullable|numeric',
+                'market_volume' => 'nullable|numeric',
+                'investor_confidence' => 'nullable|numeric|min:0|max:100',
+                'status' => 'in:draft,published',
+            ]);
+
+            $validated['user_id'] = auth()->id();
+            if ($validated['status'] === 'published') {
+                $validated['published_at'] = now();
+            }
+
+            $insight = $this->adminService->createInsight($validated);
+
+            return response()->json([
+                'success' => true,
+                'data' => $insight,
+                'message' => 'Insight created successfully'
+            ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create insight',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function updateInsight(Request $request, MarketInsight $insight): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'title' => 'required|string|max:255',
+                'content' => 'required|string',
+                'category' => 'required|string|max:255',
+                'featured' => 'boolean',
+                'tags' => 'array',
+                'price_trend' => 'nullable|numeric',
+                'market_volume' => 'nullable|numeric',
+                'investor_confidence' => 'nullable|numeric|min:0|max:100',
+                'status' => 'in:draft,published',
+            ]);
+
+            if ($validated['status'] === 'published' && $insight->status !== 'published') {
+                $validated['published_at'] = now();
+            } elseif ($validated['status'] === 'draft') {
+                $validated['published_at'] = null;
+            }
+
+            $updatedInsight = $this->adminService->updateInsight($insight, $validated);
+
+            return response()->json([
+                'success' => true,
+                'data' => $updatedInsight,
+                'message' => 'Insight updated successfully'
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update insight',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function deleteInsight(MarketInsight $insight): JsonResponse
+    {
+        try {
+            $this->adminService->deleteInsight($insight);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Insight deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete insight',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function publishInsight(MarketInsight $insight): JsonResponse
+    {
+        try {
+            $publishedInsight = $this->adminService->publishInsight($insight);
+
+            return response()->json([
+                'success' => true,
+                'data' => $publishedInsight,
+                'message' => 'Insight published successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to publish insight',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function unpublishInsight(MarketInsight $insight): JsonResponse
+    {
+        try {
+            $unpublishedInsight = $this->adminService->unpublishInsight($insight);
+
+            return response()->json([
+                'success' => true,
+                'data' => $unpublishedInsight,
+                'message' => 'Insight unpublished successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to unpublish insight',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function bulkPublishInsights(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'ids' => 'required|array',
+                'ids.*' => 'integer|exists:market_insights,id',
+            ]);
+
+            $count = $this->adminService->bulkPublishInsights($validated['ids']);
+
+            return response()->json([
+                'success' => true,
+                'data' => ['count' => $count],
+                'message' => "{$count} insights published successfully"
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to publish insights',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function bulkUnpublishInsights(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'ids' => 'required|array',
+                'ids.*' => 'integer|exists:market_insights,id',
+            ]);
+
+            $count = $this->adminService->bulkUnpublishInsights($validated['ids']);
+
+            return response()->json([
+                'success' => true,
+                'data' => ['count' => $count],
+                'message' => "{$count} insights unpublished successfully"
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to unpublish insights',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function bulkDeleteInsights(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'ids' => 'required|array',
+                'ids.*' => 'integer|exists:market_insights,id',
+            ]);
+
+            $count = $this->adminService->bulkDeleteInsights($validated['ids']);
+
+            return response()->json([
+                'success' => true,
+                'data' => ['count' => $count],
+                'message' => "{$count} insights deleted successfully"
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete insights',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // Market Insight Categories CRUD
+
+    public function insightCategories(Request $request): JsonResponse
+    {
+        try {
+            $perPage = (int) $request->get('per_page', 15);
+            $categories = MarketInsightCategory::paginate($perPage);
+
+            return response()->json([
+                'success' => true,
+                'data' => $categories,
+                'message' => 'Categories retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve categories',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function showInsightCategory(MarketInsightCategory $category): JsonResponse
+    {
+        try {
+            return response()->json([
+                'success' => true,
+                'data' => $category,
+                'message' => 'Category retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve category',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function createInsightCategory(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255|unique:market_insight_categories,name',
+                'description' => 'nullable|string',
+            ]);
+
+            $category = MarketInsightCategory::create($validated);
+
+            return response()->json([
+                'success' => true,
+                'data' => $category,
+                'message' => 'Category created successfully'
+            ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create category',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function updateInsightCategory(Request $request, MarketInsightCategory $category): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255|unique:market_insight_categories,name,' . $category->id,
+                'description' => 'nullable|string',
+            ]);
+
+            $category->update($validated);
+
+            return response()->json([
+                'success' => true,
+                'data' => $category,
+                'message' => 'Category updated successfully'
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update category',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function deleteInsightCategory(MarketInsightCategory $category): JsonResponse
+    {
+        try {
+            // Check if category has associated insights
+            if ($category->marketInsights()->count() > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot delete category with associated insights'
+                ], 422);
+            }
+
+            $category->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Category deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete category',
                 'error' => $e->getMessage()
             ], 500);
         }

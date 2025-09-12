@@ -126,5 +126,24 @@ Route::middleware(['auth:sanctum', 'can:admin'])->prefix('admin')->group(functio
     Route::post('newsletters', [AdminController::class, 'createNewsletter'])->name('admin.newsletters.create');
     Route::get('recent-activity', [AdminController::class, 'recentActivity'])->name('admin.recent.activity');
     Route::get('pending-tasks', [AdminController::class, 'pendingTasks'])->name('admin.pending.tasks');
+
+    // Insights management
+    Route::get('insights', [AdminController::class, 'insights'])->name('admin.insights.index');
+    Route::get('insights/{insight}', [AdminController::class, 'showInsight'])->name('admin.insights.show');
+    Route::post('insights', [AdminController::class, 'createInsight'])->name('admin.insights.create');
+    Route::put('insights/{insight}', [AdminController::class, 'updateInsight'])->name('admin.insights.update');
+    Route::delete('insights/{insight}', [AdminController::class, 'deleteInsight'])->name('admin.insights.delete');
+    Route::put('insights/{insight}/publish', [AdminController::class, 'publishInsight'])->name('admin.insights.publish');
+    Route::put('insights/{insight}/unpublish', [AdminController::class, 'unpublishInsight'])->name('admin.insights.unpublish');
+    Route::post('insights/bulk-publish', [AdminController::class, 'bulkPublishInsights'])->name('admin.insights.bulk-publish');
+    Route::post('insights/bulk-unpublish', [AdminController::class, 'bulkUnpublishInsights'])->name('admin.insights.bulk-unpublish');
+    Route::post('insights/bulk-delete', [AdminController::class, 'bulkDeleteInsights'])->name('admin.insights.bulk-delete');
+
+    // Insight Categories management
+    Route::get('insight-categories', [AdminController::class, 'insightCategories'])->name('admin.insight-categories.index');
+    Route::get('insight-categories/{category}', [AdminController::class, 'showInsightCategory'])->name('admin.insight-categories.show');
+    Route::post('insight-categories', [AdminController::class, 'createInsightCategory'])->name('admin.insight-categories.create');
+    Route::put('insight-categories/{category}', [AdminController::class, 'updateInsightCategory'])->name('admin.insight-categories.update');
+    Route::delete('insight-categories/{category}', [AdminController::class, 'deleteInsightCategory'])->name('admin.insight-categories.delete');
 });
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum')->name('auth.logout');

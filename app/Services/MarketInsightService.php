@@ -12,10 +12,13 @@ class MarketInsightService
 {
     public function paginateInsights(array $filters = [], ?int $userId = null, int $perPage = 15, int $page = 1): LengthAwarePaginator
     {
-        $query = MarketInsight::with(['user', 'likes']);
+        $query = MarketInsight::with(['user', 'likes', 'category']);
 
         if (!empty($filters['category'])) {
-            $query->where('category', $filters['category']);
+            // Filter by category name through relationship
+            $query->whereHas('category', function ($q) use ($filters) {
+                $q->where('name', $filters['category']);
+            });
         }
 
         if (isset($filters['exclude'])) {
@@ -46,9 +49,9 @@ class MarketInsightService
             return collect();
         }
 
-        return MarketInsight::where('category', $insight->category)
+        return MarketInsight::where('category_id', $insight->category_id)
             ->where('id', '!=', $id)
-            ->with('user')
+            ->with(['user', 'category'])
             ->latest()
             ->limit($limit)
             ->get();

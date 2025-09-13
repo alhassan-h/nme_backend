@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\MarketInsightRequest;
 use App\Models\User;
 use App\Models\Product;
 use App\Models\Newsletter;
@@ -231,23 +232,12 @@ class AdminController extends Controller
         }
     }
 
-    public function createInsight(Request $request): JsonResponse
+    public function createInsight(MarketInsightRequest $request): JsonResponse
     {
         try {
-            $validated = $request->validate([
-                'title' => 'required|string|max:255',
-                'content' => 'required|string',
-                'category' => 'required|string|max:255',
-                'featured' => 'boolean',
-                'tags' => 'array',
-                'price_trend' => 'nullable|numeric',
-                'market_volume' => 'nullable|numeric',
-                'investor_confidence' => 'nullable|numeric|min:0|max:100',
-                'status' => 'in:draft,published',
-            ]);
-
+            $validated = $request->validated();
             $validated['user_id'] = auth()->id();
-            if ($validated['status'] === 'published') {
+            if (isset($validated['status']) && $validated['status'] === 'published') {
                 $validated['published_at'] = now();
             }
 
@@ -255,7 +245,7 @@ class AdminController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $insight,
+                'data' => $insight->load('user', 'category'),
                 'message' => 'Insight created successfully'
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -265,6 +255,7 @@ class AdminController extends Controller
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
+            \Log::error('Failed to create insight', ['error' => $e->getMessage()]);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create insight',
@@ -279,14 +270,44 @@ class AdminController extends Controller
             $validated = $request->validate([
                 'title' => 'required|string|max:255',
                 'content' => 'required|string',
-                'category' => 'required|string|max:255',
+                'category' => 'nullable|string|max:255',
+                'category_name' => 'nullable|string|max:255',
+                'category_id' => 'nullable|integer|exists:market_insight_categories,id',
                 'featured' => 'boolean',
                 'tags' => 'array',
-                'price_trend' => 'nullable|numeric',
-                'market_volume' => 'nullable|numeric',
-                'investor_confidence' => 'nullable|numeric|min:0|max:100',
+                'price_trend' => 'nullable|string|max:50',
+                'market_volume' => 'nullable|string|max:50',
+                'investor_confidence' => 'nullable|string|max:50',
                 'status' => 'in:draft,published',
             ]);
+
+            // Handle category conversion
+            if (isset($validated['category_id'])) {
+                $validated['category_id'] = (int) $validated['category_id'];
+            } elseif (isset($validated['category_name'])) {
+                $category = MarketInsightCategory::where('name', $validated['category_name'])->first();
+                if (!$category) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Invalid category',
+                        'errors' => ['category' => ['The selected category does not exist.']]
+                    ], 422);
+                }
+                $validated['category_id'] = $category->id;
+            } elseif (isset($validated['category'])) {
+                $category = MarketInsightCategory::where('name', $validated['category'])->first();
+                if (!$category) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Invalid category',
+                        'errors' => ['category' => ['The selected category does not exist.']]
+                    ], 422);
+                }
+                $validated['category_id'] = $category->id;
+            }
+
+            // Clean up temporary fields
+            unset($validated['category'], $validated['category_name']);
 
             if ($validated['status'] === 'published' && $insight->status !== 'published') {
                 $validated['published_at'] = now();
@@ -298,7 +319,7 @@ class AdminController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $updatedInsight,
+                'data' => $updatedInsight->load('user', 'category'),
                 'message' => 'Insight updated successfully'
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {

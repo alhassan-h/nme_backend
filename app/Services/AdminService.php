@@ -6,7 +6,9 @@ use App\Models\MarketInsight;
 use App\Models\Newsletter;
 use App\Models\Product;
 use App\Models\User;
+use App\Jobs\SendNewsletterJob;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Log;
 
 class AdminService
 {
@@ -62,7 +64,43 @@ class AdminService
 
     public function createNewsletter(array $data): Newsletter
     {
-        return Newsletter::create($data);
+        $newsletter = Newsletter::create($data);
+
+        // If status is sent, dispatch the send job immediately
+        if (isset($data['status']) && $data['status'] === 'sent') {
+            $this->sendNewsletter($newsletter);
+        }
+
+        return $newsletter;
+    }
+
+    public function sendNewsletter(Newsletter $newsletter): bool
+    {
+        try {
+            // Check if newsletter is already being sent or sent
+            if ($newsletter->status === 'sent' || $newsletter->status === 'sending') {
+                Log::warning("Newsletter ID {$newsletter->id} is already sent or being sent");
+                return false;
+            }
+
+            // Update newsletter status to sending
+            $newsletter->update(['status' => 'sending']);
+
+            // Dispatch the job to the queue
+            SendNewsletterJob::dispatch($newsletter);
+
+            Log::info("Newsletter send job dispatched for newsletter ID: {$newsletter->id}");
+
+            return true;
+
+        } catch (\Exception $e) {
+            Log::error("Failed to dispatch newsletter send job: " . $e->getMessage());
+
+            // Reset newsletter status on failure
+            $newsletter->update(['status' => 'draft']);
+
+            return false;
+        }
     }
 
     public function getRecentActivity(int $limit = 10): array

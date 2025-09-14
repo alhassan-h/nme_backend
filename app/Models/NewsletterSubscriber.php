@@ -13,11 +13,13 @@ class NewsletterSubscriber extends Model
         'email',
         'name',
         'subscribed_at',
+        'unsubscribed_at',
         'status',
     ];
 
     protected $casts = [
         'subscribed_at' => 'datetime',
+        'unsubscribed_at' => 'datetime',
     ];
 
     public function newsletterRecipients()

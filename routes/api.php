@@ -32,6 +32,8 @@ Route::prefix('auth')->group(function () {
 
 // Newsletter subscription
 Route::post('newsletter/subscribe', [NewsletterController::class, 'subscribe'])->name('newsletter.subscribe');
+Route::get('newsletter/status', [NewsletterController::class, 'checkStatus'])->name('newsletter.status');
+Route::post('newsletter/unsubscribe', [NewsletterController::class, 'unsubscribe'])->name('newsletter.unsubscribe');
 
 // Mineral Categories
 Route::get('mineral-categories', [MineralCategoryController::class, 'index'])->name('mineral-categories.index');

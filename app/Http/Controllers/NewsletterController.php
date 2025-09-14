@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Newsletter;
 use App\Models\NewsletterSubscriber;
 use App\Models\NewsletterRecipient;
+use App\Services\AdminService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -12,10 +13,17 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class NewsletterController extends Controller
 {
+    protected AdminService $adminService;
+
+    public function __construct(AdminService $adminService)
+    {
+        $this->adminService = $adminService;
+    }
+
     public function subscribe(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'email' => 'required|email|unique:newsletter_subscribers,email',
+            'email' => 'required|email',
             'name' => 'nullable|string|max:255',
         ]);
 
@@ -23,12 +31,22 @@ class NewsletterController extends Controller
             return response()->json(['message' => 'Invalid data', 'errors' => $validator->errors()], 422);
         }
 
-        $subscriber = NewsletterSubscriber::create([
+        $subscriber = NewsletterSubscriber::where('email', $request->email)->first();
+
+        // If subscriber exists and is unsubscribed, reactivate them
+        if ($subscriber && $subscriber->status !== 'active') {
+            $subscriber->update([
+                'status' => 'active',
+                'subscribed_at' => now(),
+            ]);
+        } else if (!$subscriber) {
+            $subscriber = NewsletterSubscriber::create([
             'email' => $request->email,
             'name' => $request->name,
             'subscribed_at' => now(),
             'status' => 'active',
-        ]);
+            ]);
+        }
 
         return response()->json([
             'message' => 'Successfully subscribed to newsletter',
@@ -130,24 +148,8 @@ class NewsletterController extends Controller
             return response()->json(['message' => 'Newsletter has already been sent'], 400);
         }
 
-        // Get all active subscribers
-        $subscribers = NewsletterSubscriber::where('status', 'active')->get();
-
-        // Create recipients
-        foreach ($subscribers as $subscriber) {
-            NewsletterRecipient::create([
-                'newsletter_id' => $newsletter->id,
-                'subscriber_id' => $subscriber->id,
-                'sent_at' => now(),
-                'status' => 'sent',
-            ]);
-        }
-
-        // Update newsletter status
-        $newsletter->update([
-            'status' => 'sent',
-            'sent_at' => now(),
-        ]);
+        // Use service class to handle sending logic
+        $this->adminService->sendNewsletter($newsletter);
 
         return response()->json([
             'message' => 'Newsletter sent successfully',
@@ -174,19 +176,95 @@ class NewsletterController extends Controller
         return $query->orderBy('subscribed_at', 'desc')->paginate($request->get('per_page', 15));
     }
 
+    public function checkStatus(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+            'token' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['message' => 'Invalid data', 'errors' => $validator->errors()], 422);
+        }
+
+        $subscriber = NewsletterSubscriber::where('email', $request->email)->first();
+
+        if (!$subscriber) {
+            return response()->json(['message' => 'Subscriber not found'], 404);
+        }
+
+        // Verify token
+        $expectedToken = sha1($subscriber->email . $subscriber->id . config('app.key'));
+        if ($request->token !== $expectedToken) {
+            return response()->json(['message' => 'Invalid token'], 403);
+        }
+
+        return response()->json([
+            'status' => $subscriber->status,
+            'email' => $subscriber->email,
+            'name' => $subscriber->name,
+            'subscribed_at' => $subscriber->subscribed_at,
+            'unsubscribed_at' => $subscriber->unsubscribed_at,
+        ]);
+    }
+
+    public function unsubscribe(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email|exists:newsletter_subscribers,email',
+            'token' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['message' => 'Invalid request', 'errors' => $validator->errors()], 422);
+        }
+
+        $subscriber = NewsletterSubscriber::where('email', $request->email)->first();
+
+        if (!$subscriber) {
+            return response()->json(['message' => 'Subscriber not found'], 404);
+        }
+
+        if ($subscriber->status === 'unsubscribed') {
+            return response()->json(['message' => 'You have already unsubscribed from our newsletter']);
+        }
+
+        // Verify token
+        $expectedToken = sha1($subscriber->email . $subscriber->id . config('app.key'));
+        if ($request->token !== $expectedToken) {
+            return response()->json(['message' => 'Invalid unsubscribe token'], 403);
+        }
+
+        // Update subscriber status
+        $subscriber->update([
+            'status' => 'unsubscribed',
+            'unsubscribed_at' => now(),
+        ]);
+
+        return response()->json([
+            'message' => 'You have been successfully unsubscribed from our newsletter',
+        ]);
+    }
+
     public function stats(): JsonResponse
     {
         $totalSubscribers = NewsletterSubscriber::count();
         $activeSubscribers = NewsletterSubscriber::where('status', 'active')->count();
+        $unsubscribedSubscribers = NewsletterSubscriber::where('status', 'unsubscribed')->count();
         $totalNewsletters = Newsletter::count();
         $sentNewsletters = Newsletter::where('status', 'sent')->count();
 
         $avgOpenRate = Newsletter::where('status', 'sent')->get()->avg('open_rate') ?? 0;
         $avgClickRate = Newsletter::where('status', 'sent')->get()->avg('click_rate') ?? 0;
 
+        // Calculate unsubscribe rate
+        $unsubscribeRate = $totalSubscribers > 0 ? round(($unsubscribedSubscribers / $totalSubscribers) * 100, 2) : 0;
+
         return response()->json([
             'total_subscribers' => $totalSubscribers,
             'active_subscribers' => $activeSubscribers,
+            'unsubscribed_subscribers' => $unsubscribedSubscribers,
+            'unsubscribe_rate' => $unsubscribeRate,
             'total_newsletters' => $totalNewsletters,
             'sent_newsletters' => $sentNewsletters,
             'avg_open_rate' => round($avgOpenRate, 2),

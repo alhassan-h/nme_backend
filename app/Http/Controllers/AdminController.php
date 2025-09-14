@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\MarketInsightRequest;
+use App\Http\Requests\Newsletter\CreateNewsletterRequest;
 use App\Models\User;
 use App\Models\Product;
 use App\Models\Newsletter;
@@ -124,37 +125,6 @@ class AdminController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to approve product',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    public function createNewsletter(Request $request): JsonResponse
-    {
-        try {
-            $validated = $request->validate([
-                'subject' => 'required|string|max:255',
-                'content' => 'required|string',
-                'html_content' => 'nullable|string',
-            ]);
-
-            $newsletter = $this->adminService->createNewsletter($validated);
-
-            return response()->json([
-                'success' => true,
-                'data' => $newsletter,
-                'message' => 'Newsletter created successfully'
-            ], Response::HTTP_CREATED);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $e->errors()
-            ], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create newsletter',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -642,6 +612,28 @@ class AdminController extends Controller
         }
     }
 
+    public function createNewsletter(CreateNewsletterRequest $request): JsonResponse
+    {
+        try {
+            $validated = $request->validatedWithStatus();
+
+            $newsletter = $this->adminService->createNewsletter($validated);
+
+            return response()->json([
+                'success' => true,
+                'data' => $newsletter,
+                'message' => 'Newsletter created successfully'
+            ], Response::HTTP_CREATED);
+        } catch (\Exception $e) {
+            \Log::error('Failed to create newsletter', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create newsletter',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function showNewsletter(Newsletter $newsletter): JsonResponse
     {
         try {
@@ -719,26 +711,9 @@ class AdminController extends Controller
                 ], 400);
             }
 
-            // Get all active subscribers
-            $subscribers = NewsletterSubscriber::where('status', 'active')->get();
-
-            // Create recipients (skip if already exists)
-            foreach ($subscribers as $subscriber) {
-                NewsletterRecipient::firstOrCreate([
-                    'newsletter_id' => $newsletter->id,
-                    'subscriber_id' => $subscriber->id,
-                ], [
-                    'sent_at' => now(),
-                    'status' => 'sent',
-                ]);
-            }
-
-            // Update newsletter status
-            $newsletter->update([
-                'status' => 'sent',
-                'sent_at' => now(),
-            ]);
-
+            // Use service class to handle sending logic
+            $this->adminService->sendNewsletter($newsletter);
+            
             return response()->json([
                 'success' => true,
                 'data' => $newsletter->load('recipients'),
@@ -788,17 +763,23 @@ class AdminController extends Controller
         try {
             $totalSubscribers = NewsletterSubscriber::count();
             $activeSubscribers = NewsletterSubscriber::where('status', 'active')->count();
+            $unsubscribedSubscribers = NewsletterSubscriber::where('status', 'unsubscribed')->count();
             $totalNewsletters = Newsletter::count();
             $sentNewsletters = Newsletter::where('status', 'sent')->count();
 
             $avgOpenRate = Newsletter::where('status', 'sent')->get()->avg('open_rate') ?? 0;
             $avgClickRate = Newsletter::where('status', 'sent')->get()->avg('click_rate') ?? 0;
 
+            // Calculate unsubscribe rate
+            $unsubscribeRate = $totalSubscribers > 0 ? round(($unsubscribedSubscribers / $totalSubscribers) * 100, 2) : 0;
+
             return response()->json([
                 'success' => true,
                 'data' => [
                     'total_subscribers' => $totalSubscribers,
                     'active_subscribers' => $activeSubscribers,
+                    'unsubscribed_subscribers' => $unsubscribedSubscribers,
+                    'unsubscribe_rate' => $unsubscribeRate,
                     'total_newsletters' => $totalNewsletters,
                     'sent_newsletters' => $sentNewsletters,
                     'avg_open_rate' => round($avgOpenRate, 2),

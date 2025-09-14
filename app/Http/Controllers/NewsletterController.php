@@ -23,7 +23,7 @@ class NewsletterController extends Controller
     public function subscribe(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'email' => 'required|email|unique:newsletter_subscribers,email',
+            'email' => 'required|email',
             'name' => 'nullable|string|max:255',
         ]);
 
@@ -31,12 +31,22 @@ class NewsletterController extends Controller
             return response()->json(['message' => 'Invalid data', 'errors' => $validator->errors()], 422);
         }
 
-        $subscriber = NewsletterSubscriber::create([
+        $subscriber = NewsletterSubscriber::where('email', $request->email)->first();
+
+        // If subscriber exists and is unsubscribed, reactivate them
+        if ($subscriber && $subscriber->status !== 'active') {
+            $subscriber->update([
+                'status' => 'active',
+                'subscribed_at' => now(),
+            ]);
+        } else if (!$subscriber) {
+            $subscriber = NewsletterSubscriber::create([
             'email' => $request->email,
             'name' => $request->name,
             'subscribed_at' => now(),
             'status' => 'active',
-        ]);
+            ]);
+        }
 
         return response()->json([
             'message' => 'Successfully subscribed to newsletter',

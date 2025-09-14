@@ -124,6 +124,13 @@ Route::middleware(['auth:sanctum', 'can:admin'])->prefix('admin')->group(functio
     Route::get('products/pending', [AdminController::class, 'pendingProducts'])->name('admin.products.pending');
     Route::put('products/{id}/approve', [AdminController::class, 'approveProduct'])->name('admin.products.approve');
     Route::post('newsletters', [AdminController::class, 'createNewsletter'])->name('admin.newsletters.create');
+    Route::get('newsletters', [AdminController::class, 'newsletters'])->name('admin.newsletters.index');
+    Route::get('newsletters/{newsletter}', [AdminController::class, 'showNewsletter'])->name('admin.newsletters.show');
+    Route::put('newsletters/{newsletter}', [AdminController::class, 'updateNewsletter'])->name('admin.newsletters.update');
+    Route::delete('newsletters/{newsletter}', [AdminController::class, 'deleteNewsletter'])->name('admin.newsletters.delete');
+    Route::post('newsletters/{newsletter}/send', [AdminController::class, 'sendNewsletter'])->name('admin.newsletters.send');
+    Route::get('newsletter-subscribers', [AdminController::class, 'newsletterSubscribers'])->name('admin.newsletter-subscribers.index');
+    Route::get('newsletter-stats', [AdminController::class, 'newsletterStats'])->name('admin.newsletter-stats');
     Route::get('recent-activity', [AdminController::class, 'recentActivity'])->name('admin.recent.activity');
     Route::get('pending-tasks', [AdminController::class, 'pendingTasks'])->name('admin.pending.tasks');
 

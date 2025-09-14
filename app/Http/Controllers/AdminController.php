@@ -6,6 +6,8 @@ use App\Http\Requests\MarketInsightRequest;
 use App\Models\User;
 use App\Models\Product;
 use App\Models\Newsletter;
+use App\Models\NewsletterSubscriber;
+use App\Models\NewsletterRecipient;
 use App\Models\MarketInsight;
 use App\Models\MarketInsightCategory;
 use App\Services\AdminService;
@@ -133,7 +135,7 @@ class AdminController extends Controller
             $validated = $request->validate([
                 'subject' => 'required|string|max:255',
                 'content' => 'required|string',
-                'html_content' => 'required|string',
+                'html_content' => 'nullable|string',
             ]);
 
             $newsletter = $this->adminService->createNewsletter($validated);
@@ -603,6 +605,211 @@ class AdminController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete category',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // Newsletter methods
+
+    public function newsletters(Request $request): JsonResponse
+    {
+        try {
+            $perPage = (int) $request->get('per_page', 15);
+            $filters = $request->only(['search', 'status']);
+            $newsletters = Newsletter::with('recipients')
+                ->when($filters['search'] ?? null, function ($query, $search) {
+                    $query->where('subject', 'like', "%{$search}%")
+                          ->orWhere('content', 'like', "%{$search}%");
+                })
+                ->when($filters['status'] ?? null, function ($query, $status) {
+                    $query->where('status', $status);
+                })
+                ->orderBy('created_at', 'desc')
+                ->paginate($perPage);
+
+            return response()->json([
+                'success' => true,
+                'data' => $newsletters,
+                'message' => 'Newsletters retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve newsletters',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function showNewsletter(Newsletter $newsletter): JsonResponse
+    {
+        try {
+            return response()->json([
+                'success' => true,
+                'data' => $newsletter->load('recipients.subscriber'),
+                'message' => 'Newsletter retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve newsletter',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function updateNewsletter(Request $request, Newsletter $newsletter): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'subject' => 'required|string|max:255',
+                'content' => 'required|string',
+                'html_content' => 'nullable|string',
+                'scheduled_for' => 'nullable|date|after:now',
+            ]);
+
+            $newsletter->update($validated);
+
+            return response()->json([
+                'success' => true,
+                'data' => $newsletter->load('recipients'),
+                'message' => 'Newsletter updated successfully'
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update newsletter',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function deleteNewsletter(Newsletter $newsletter): JsonResponse
+    {
+        try {
+            $newsletter->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Newsletter deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete newsletter',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function sendNewsletter(Newsletter $newsletter): JsonResponse
+    {
+        try {
+            if ($newsletter->status === 'sent') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Newsletter has already been sent'
+                ], 400);
+            }
+
+            // Get all active subscribers
+            $subscribers = NewsletterSubscriber::where('status', 'active')->get();
+
+            // Create recipients (skip if already exists)
+            foreach ($subscribers as $subscriber) {
+                NewsletterRecipient::firstOrCreate([
+                    'newsletter_id' => $newsletter->id,
+                    'subscriber_id' => $subscriber->id,
+                ], [
+                    'sent_at' => now(),
+                    'status' => 'sent',
+                ]);
+            }
+
+            // Update newsletter status
+            $newsletter->update([
+                'status' => 'sent',
+                'sent_at' => now(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => $newsletter->load('recipients'),
+                'message' => 'Newsletter sent successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send newsletter',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function newsletterSubscribers(Request $request): JsonResponse
+    {
+        try {
+            $perPage = (int) $request->get('per_page', 15);
+            $filters = $request->only(['search', 'status']);
+            $subscribers = NewsletterSubscriber::query()
+                ->when($filters['search'] ?? null, function ($query, $search) {
+                    $query->where('email', 'like', "%{$search}%")
+                          ->orWhere('name', 'like', "%{$search}%");
+                })
+                ->when($filters['status'] ?? null, function ($query, $status) {
+                    $query->where('status', $status);
+                })
+                ->orderBy('subscribed_at', 'desc')
+                ->paginate($perPage);
+
+            return response()->json([
+                'success' => true,
+                'data' => $subscribers,
+                'message' => 'Newsletter subscribers retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve newsletter subscribers',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function newsletterStats(): JsonResponse
+    {
+        try {
+            $totalSubscribers = NewsletterSubscriber::count();
+            $activeSubscribers = NewsletterSubscriber::where('status', 'active')->count();
+            $totalNewsletters = Newsletter::count();
+            $sentNewsletters = Newsletter::where('status', 'sent')->count();
+
+            $avgOpenRate = Newsletter::where('status', 'sent')->get()->avg('open_rate') ?? 0;
+            $avgClickRate = Newsletter::where('status', 'sent')->get()->avg('click_rate') ?? 0;
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'total_subscribers' => $totalSubscribers,
+                    'active_subscribers' => $activeSubscribers,
+                    'total_newsletters' => $totalNewsletters,
+                    'sent_newsletters' => $sentNewsletters,
+                    'avg_open_rate' => round($avgOpenRate, 2),
+                    'avg_click_rate' => round($avgClickRate, 2),
+                ],
+                'message' => 'Newsletter stats retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve newsletter stats',
                 'error' => $e->getMessage()
             ], 500);
         }

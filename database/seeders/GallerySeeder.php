@@ -23,12 +23,15 @@ class GallerySeeder extends Seeder
             throw new \Exception('Required users not found. Please run UserSeeder first.');
         }
 
+        // Get locations from database (ensuring they exist from LocationSeeder), pluck their IDs and names
+        $locations = \App\Models\Location::pluck('id', 'name')->toArray();
+
         // Sample gallery images data with explicit data creation
         $galleryImages = [
             [
                 'file_path' => 'gallery/placeholder-ke6hd.png',
                 'category' => 'Gold',
-                'location' => 'Zamfara State',
+                'location_id' => $locations['Zamfara State'],
                 'description' => 'Gold Nuggets from Zamfara',
                 'views' => 1234,
                 'user_id' => $johnAdebayo->id,
@@ -38,7 +41,7 @@ class GallerySeeder extends Seeder
             [
                 'file_path' => 'gallery/placeholder-ke6hd.png',
                 'category' => 'Limestone',
-                'location' => 'Ogun State',
+                'location_id' => $locations['Ogun State'],
                 'description' => 'Limestone Quarry Operations',
                 'views' => 856,
                 'user_id' => $sarahOkafor->id,
@@ -48,7 +51,7 @@ class GallerySeeder extends Seeder
             [
                 'file_path' => 'gallery/tin-ore-samples.png',
                 'category' => 'Tin',
-                'location' => 'Plateau State',
+                'location_id' => $locations['Plateau State'],
                 'description' => 'Tin Ore Samples',
                 'views' => 642,
                 'user_id' => $michaelAdamu->id,
@@ -58,7 +61,7 @@ class GallerySeeder extends Seeder
             [
                 'file_path' => 'gallery/placeholder-ke6hd.png',
                 'category' => 'Coal',
-                'location' => 'Enugu State',
+                'location_id' => $locations['Enugu State'],
                 'description' => 'Coal Mining Site',
                 'views' => 789,
                 'user_id' => $emekaNwachukwu->id,
@@ -68,7 +71,7 @@ class GallerySeeder extends Seeder
             [
                 'file_path' => 'gallery/iron-ore-deposits.png',
                 'category' => 'Iron Ore',
-                'location' => 'Kogi State',
+                'location_id' => $locations['Kogi State'],
                 'description' => 'Iron Ore Deposits',
                 'views' => 923,
                 'user_id' => $fatimaBello->id,
@@ -78,7 +81,7 @@ class GallerySeeder extends Seeder
             [
                 'file_path' => 'gallery/barite-crystal.png',
                 'category' => 'Barite',
-                'location' => 'Cross River State',
+                'location_id' => $locations['Cross River State'],
                 'description' => 'Barite Crystal Formation',
                 'views' => 567,
                 'user_id' => $aminaYusuf->id,
@@ -88,7 +91,7 @@ class GallerySeeder extends Seeder
             [
                 'file_path' => 'gallery/placeholder-ke6hd.png',
                 'category' => 'Mining',
-                'location' => 'Kaduna State',
+                'location_id' => $locations['Kaduna State'],
                 'description' => 'Mining Operations in Kaduna',
                 'views' => 345,
                 'user_id' => $johnAdebayo->id,
@@ -98,7 +101,7 @@ class GallerySeeder extends Seeder
             [
                 'file_path' => 'gallery/placeholder-ke6hd.png',
                 'category' => 'Products',
-                'location' => 'Lagos State',
+                'location_id' => $locations['Lagos State'],
                 'description' => 'Mineral Products Display',
                 'views' => 678,
                 'user_id' => $sarahOkafor->id,
@@ -108,7 +111,7 @@ class GallerySeeder extends Seeder
             [
                 'file_path' => 'gallery/placeholder-ke6hd.png',
                 'category' => 'Market',
-                'location' => 'Abuja',
+                'location_id' => $locations['FCT Abuja'],
                 'description' => 'Mineral Market Activities',
                 'views' => 432,
                 'user_id' => $michaelAdamu->id,
@@ -118,7 +121,7 @@ class GallerySeeder extends Seeder
             [
                 'file_path' => 'gallery/placeholder-ke6hd.png',
                 'category' => 'Events',
-                'location' => 'Rivers State',
+                'location_id' => $locations['Rivers State'],
                 'description' => 'Mining Industry Conference',
                 'views' => 789,
                 'user_id' => $fatimaBello->id,

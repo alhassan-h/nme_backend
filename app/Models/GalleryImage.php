@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Location;
 
 class GalleryImage extends Model
 {
@@ -14,7 +15,7 @@ class GalleryImage extends Model
     protected $fillable = [
         'file_path',
         'category',
-        'location',
+        'location_id',
         'description',
         'views',
         'user_id',
@@ -31,6 +32,11 @@ class GalleryImage extends Model
     public function uploader(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(Location::class, 'location_id');
     }
 
     public function likes(): HasMany

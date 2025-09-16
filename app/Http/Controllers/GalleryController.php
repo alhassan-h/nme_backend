@@ -44,12 +44,12 @@ class GalleryController extends Controller
         $request->validate([
             'image' => 'required|image|max:5120',
             'category' => 'required|string|max:255',
-            'location' => 'nullable|string|max:255',
+            'location_id' => 'required|numeric|max:255',
             'description' => 'nullable|string',
         ]);
 
         $image = $request->file('image');
-        $metadata = $request->only(['category', 'location', 'description']);
+        $metadata = $request->only(['category', 'location_id', 'description']);
         $uploader = Auth::user();
 
         $galleryImage = $this->galleryService->uploadImage($image, $metadata, $uploader);
@@ -70,5 +70,41 @@ class GalleryController extends Controller
         $this->galleryService->incrementView($id);
 
         return response()->json(null, Response::HTTP_NO_CONTENT);
+    }
+
+    public function update(int $id, Request $request): JsonResponse
+    {
+        $request->validate([
+            'category' => 'nullable|string|max:255',
+            'location' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+        ]);
+
+        $data = $request->only(['category', 'location', 'description']);
+        $image = $this->galleryService->updateImage($id, $data);
+
+        return response()->json($image);
+    }
+
+    public function destroy(int $id): JsonResponse
+    {
+        $this->galleryService->deleteImage($id);
+
+        return response()->json(null, Response::HTTP_NO_CONTENT);
+    }
+
+    public function adminIndex(Request $request): JsonResponse
+    {
+        $filters = [
+            'category' => $request->get('category'),
+            'location' => $request->get('location'),
+            'search' => $request->get('search'),
+            'page' => $request->get('page', 1),
+            'per_page' => $request->get('per_page', 15),
+        ];
+
+        $paginated = $this->galleryService->getAdminImages($filters);
+
+        return response()->json($paginated);
     }
 }

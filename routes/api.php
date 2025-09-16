@@ -118,6 +118,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('gallery/{id}/view', [GalleryController::class, 'incrementView'])->name('gallery.incrementView');
 });
 
+// Admin Gallery Routes
+Route::middleware(['auth:sanctum', 'can:admin'])->prefix('admin/gallery')->group(function () {
+    Route::get('/', [GalleryController::class, 'adminIndex'])->name('admin.gallery.index');
+    Route::get('/{id}', [GalleryController::class, 'show'])->name('admin.gallery.show');
+    Route::put('/{id}', [GalleryController::class, 'update'])->name('admin.gallery.update');
+    Route::delete('/{id}', [GalleryController::class, 'destroy'])->name('admin.gallery.destroy');
+});
+
 // Admin Routes with Admin middleware
 Route::middleware(['auth:sanctum', 'can:admin'])->prefix('admin')->group(function () {
     Route::get('dashboard/stats', [AdminController::class, 'dashboardStats'])->name('admin.dashboard.stats');

@@ -24,7 +24,7 @@ class GalleryImageFactory extends Factory
         return [
             'file_path' => $this->faker->randomElement($imageUrls),
             'category' => $this->faker->randomElement($categories),
-            'location' => $this->faker->city(),
+            'location_id' => $this->faker->numberBetween(1, 37),
             'description' => $this->faker->sentence(),
             'views' => $this->faker->numberBetween(0, 1000),
             'user_id' => User::factory()->create()->id,

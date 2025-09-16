@@ -12,6 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('market_insights', function (Blueprint $table) {
+            $table->dropIndex(['category', 'featured']);
             $table->dropColumn('category');
             $table->foreignId('category_id')->nullable()->constrained('market_insight_categories')->onDelete('set null');
             $table->index('category_id');
@@ -28,6 +29,7 @@ return new class extends Migration
             $table->dropForeign(['category_id']);
             $table->dropColumn('category_id');
             $table->string('category')->nullable();
+            $table->index(['category', 'featured']);
         });
     }
 };

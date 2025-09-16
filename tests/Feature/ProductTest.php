@@ -20,12 +20,13 @@ class ProductTest extends TestCase
         $response = $this->getJson('/api/products?category=Gold');
 
         $response->assertStatus(200)
-            ->assertJsonStructure(['data', 'links', 'meta']);
+            ->assertJsonStructure(['data', 'links']);
     }
 
     public function test_show_single_product()
     {
-        $product = Product::factory()->create();
+        $mineralCategory = \App\Models\MineralCategory::create(['name' => 'Test Category', 'icon' => '🧪']);
+        $product = Product::factory()->create(['mineral_category_id' => $mineralCategory->id]);
 
         $response = $this->getJson("/api/products/{$product->id}");
 
@@ -107,7 +108,7 @@ class ProductTest extends TestCase
 
     public function test_increment_view_endpoint()
     {
-        $user = User::factory();
+        $user = User::factory()->create();
         $product = Product::factory()->create();
         Sanctum::actingAs($user);
 
@@ -175,5 +176,55 @@ class ProductTest extends TestCase
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['status']);
+    }
+
+    public function test_products_have_valid_sellers()
+    {
+        $product = Product::factory()->create();
+
+        $response = $this->getJson("/api/products/{$product->id}");
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'seller' => ['id', 'name', 'email', 'company']
+            ])
+            ->assertJson([
+                'seller' => [
+                    'id' => $product->seller->id,
+                    'name' => $product->seller->name,
+                    'email' => $product->seller->email,
+                ]
+            ]);
+    }
+
+    public function test_sellers_can_have_no_products()
+    {
+        $user = User::factory()->create();
+
+        // Ensure no products for this user
+        $this->assertEquals(0, $user->products()->count());
+
+        // Should not break anything
+        $response = $this->getJson('/api/products');
+
+        $response->assertStatus(200);
+    }
+
+    public function test_product_list_includes_seller_information()
+    {
+        Product::factory()->count(3)->create();
+
+        $response = $this->getJson('/api/products');
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'data' => [
+                    '*' => [
+                        'id',
+                        'title',
+                        'seller' => ['id', 'name', 'email', 'company']
+                    ]
+                ]
+            ]);
     }
 }

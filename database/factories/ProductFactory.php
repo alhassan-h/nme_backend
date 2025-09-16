@@ -12,13 +12,12 @@ class ProductFactory extends Factory
 
     public function definition(): array
     {
-        $categories = ['Gold', 'Diamonds', 'Coal', 'Tin', 'Coltan', 'Iron Ore', 'Lead'];
         $units = ['kg', 'ton', 'carat', 'pieces'];
 
         return [
             'title' => $this->faker->words(3, true),
             'description' => $this->faker->paragraph(),
-            'category' => $this->faker->randomElement($categories),
+            'mineral_category_id' => \App\Models\MineralCategory::inRandomOrder()->first()?->id ?? null,
             'price' => $this->faker->randomFloat(2, 10, 10000),
             'quantity' => $this->faker->numberBetween(1, 1000),
             'unit' => $this->faker->randomElement($units),

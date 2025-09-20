@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             MarketInsightSeeder::class,
             MarketInsightLikeSeeder::class,
             ForumSeeder::class,
+            NewsletterSeeder::class,
             GallerySeeder::class,
         ]);
     }

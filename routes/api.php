@@ -130,7 +130,20 @@ Route::middleware(['auth:sanctum', 'can:admin'])->prefix('admin/gallery')->group
 Route::middleware(['auth:sanctum', 'can:admin'])->prefix('admin')->group(function () {
     Route::get('dashboard/stats', [AdminController::class, 'dashboardStats'])->name('admin.dashboard.stats');
     Route::get('users', [AdminController::class, 'users'])->name('admin.users');
-    Route::put('users/{id}/status', [AdminController::class, 'updateUserStatus'])->name('admin.users.updateStatus');
+    Route::get('users/{user}', [AdminController::class, 'showUser'])->name('admin.users.show');
+    Route::get('users/{user}/stats', [AdminController::class, 'getUserStats'])->name('admin.users.stats');
+    Route::get('users/{user}/activity', [AdminController::class, 'getUserActivity'])->name('admin.users.activity');
+    Route::get('users/{user}/login-history', [AdminController::class, 'getUserLoginHistory'])->name('admin.users.login-history');
+    Route::get('users/{user}/login-history/{loginHistory}', [AdminController::class, 'getLoginHistory'])->name('admin.users.login-history.show');
+    Route::put('users/{user}/login-history/{loginHistory}', [AdminController::class, 'updateLoginHistory'])->name('admin.users.login-history.update');
+    Route::delete('users/{user}/login-history/{loginHistory}', [AdminController::class, 'deleteLoginHistory'])->name('admin.users.login-history.delete');
+    Route::get('users/{user}/listings', [AdminController::class, 'getUserListings'])->name('admin.users.listings');
+    Route::get('users/{user}/gallery', [AdminController::class, 'getUserGallery'])->name('admin.users.gallery');
+    Route::put('users/{user}', [AdminController::class, 'updateUser'])->name('admin.users.update');
+    Route::put('users/{user}/status', [AdminController::class, 'updateUserStatus'])->name('admin.users.updateStatus');
+    Route::post('users/{user}/reset-password', [AdminController::class, 'resetUserPassword'])->name('admin.users.resetPassword');
+    Route::post('users/{user}/avatar', [AdminController::class, 'uploadUserAvatar'])->name('admin.users.uploadAvatar');
+    Route::delete('users/{user}', [AdminController::class, 'deleteUser'])->name('admin.users.delete');
     Route::get('products/pending', [AdminController::class, 'pendingProducts'])->name('admin.products.pending');
     Route::put('products/{id}/approve', [AdminController::class, 'approveProduct'])->name('admin.products.approve');
     Route::post('newsletters', [AdminController::class, 'createNewsletter'])->name('admin.newsletters.create');

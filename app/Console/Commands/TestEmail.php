@@ -2,11 +2,13 @@
 
 namespace App\Console\Commands;
 
+use App\Mail\PasswordResetByAdmin;
 use App\Mail\SendEmailVerification;
 use App\Mail\SendPasswordReset;
 use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 
 class TestEmail extends Command
@@ -16,14 +18,14 @@ class TestEmail extends Command
      *
      * @var string
      */
-    protected $signature = 'test:email {email?} {--type=password-reset}';
+    protected $signature = 'test:email {email?} {--type=password-reset} {--admin}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Test email functionality for password reset and email verification';
+    protected $description = 'Test email functionality for password reset, admin password reset, and email verification';
 
     /**
      * Execute the console command.
@@ -58,7 +60,11 @@ class TestEmail extends Command
         $this->info("Mail host: " . config('mail.mailers.smtp.host'));
 
         try {
-            if ($type === 'password-reset') {
+            $isAdmin = $this->option('admin');
+
+            if ($isAdmin) {
+                $this->testAdminPasswordResetEmail($user);
+            } elseif ($type === 'password-reset') {
                 $this->testPasswordResetEmail($user);
             } elseif ($type === 'email-verification') {
                 $this->testEmailVerification($user);
@@ -94,6 +100,22 @@ class TestEmail extends Command
 
         Mail::to($user)->send(new SendPasswordReset($user, $token));
         $this->info('✅ Password reset email sent successfully!');
+    }
+
+    private function testAdminPasswordResetEmail(User $user)
+    {
+        $this->info('📧 Testing Admin Password Reset Email...');
+
+        // Generate a password reset token
+        $token = Password::createToken($user);
+
+        // Create reset link
+        $frontendUrl = env('FRONTEND_URL', 'http://localhost:3000');
+        $resetLink = $frontendUrl . '/auth/reset-password?token=' . $token . '&email=' . urlencode($user->email);
+
+        Mail::to($user)->send(new PasswordResetByAdmin($user, $resetLink));
+        $this->info('✅ Admin password reset email sent successfully!');
+        $this->info('Reset link: ' . $resetLink);
     }
 
     private function testEmailVerification(User $user)

@@ -36,9 +36,41 @@ class AdminService
         }
     }
 
-    public function paginatedUsers(int $perPage): LengthAwarePaginator
+    public function paginatedUsers(int $perPage, array $filters = []): LengthAwarePaginator
     {
-        return User::paginate($perPage);
+        $query = User::query();
+
+        // Search filter
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                  ->orWhere('last_name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        // Status filter
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        // User type filter
+        if (!empty($filters['user_type'])) {
+            $query->where('user_type', $filters['user_type']);
+        }
+
+        // Date range filters
+        if (!empty($filters['date_from'])) {
+            $query->where('created_at', '>=', $filters['date_from']);
+        }
+
+        if (!empty($filters['date_to'])) {
+            $query->where('created_at', '<=', $filters['date_to']);
+        }
+
+        return $query->orderBy('created_at', 'desc')->paginate($perPage);
     }
 
     public function updateUserStatus(User $user, string $status): User
@@ -169,6 +201,86 @@ class AdminService
             // Return empty array if there's a database error
             return [];
         }
+    }
+
+    public function getUserActivity(User $user, int $perPage = 20, array $filters = []): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    {
+        try {
+            $query = \DB::table('personal_access_tokens')
+                ->where('tokenable_type', User::class)
+                ->where('tokenable_id', $user->id)
+                ->whereNotNull('last_used_at')
+                ->select([
+                    'id',
+                    'name',
+                    'abilities',
+                    'last_used_at',
+                    'created_at'
+                ]);
+
+            // Apply filters
+            if (!empty($filters['date_from'])) {
+                $query->where('last_used_at', '>=', $filters['date_from']);
+            }
+
+            if (!empty($filters['date_to'])) {
+                $query->where('last_used_at', '<=', $filters['date_to']);
+            }
+
+            // Order by last used date descending
+            $query->orderBy('last_used_at', 'desc');
+
+            $paginatedResults = $query->paginate($perPage);
+
+            // Transform the results to match the expected format
+            $transformedData = collect($paginatedResults->items())->map(function ($token) {
+                return [
+                    'id' => $token->id,
+                    'type' => 'login',
+                    'description' => 'User logged in',
+                    'timestamp' => $token->last_used_at,
+                    'status' => 'success',
+                    'ip_address' => null, // IP address not stored in personal_access_tokens
+                    'device_info' => $this->parseDeviceInfo($token->name)
+                ];
+            });
+
+            // Create a new paginator with transformed data
+            return new \Illuminate\Pagination\LengthAwarePaginator(
+                $transformedData,
+                $paginatedResults->total(),
+                $paginatedResults->perPage(),
+                $paginatedResults->currentPage(),
+                [
+                    'path' => request()->url(),
+                    'pageName' => 'page',
+                ]
+            );
+        } catch (\Exception $e) {
+            Log::error('Failed to get user activity', ['error' => $e->getMessage(), 'user_id' => $user->id]);
+            // Return empty paginator if there's an error
+            return new \Illuminate\Pagination\LengthAwarePaginator(
+                [],
+                0,
+                $perPage,
+                1
+            );
+        }
+    }
+
+    private function parseDeviceInfo(string $name): string
+    {
+        // Try to extract device info from token name
+        // This is a basic implementation - you might want to enhance this
+        if (str_contains($name, 'web')) {
+            return 'Web Browser';
+        } elseif (str_contains($name, 'mobile')) {
+            return 'Mobile Device';
+        } elseif (str_contains($name, 'api')) {
+            return 'API Access';
+        }
+
+        return 'Unknown Device';
     }
 
     public function getPendingTasks(): array

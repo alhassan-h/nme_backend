@@ -19,20 +19,28 @@ class AuthService
     {
         $company = $attributes['company'] ?? $attributes['company_name'] ?? null;
 
-        $user = User::create([
-            'first_name' => $attributes['first_name'],
-            'last_name' => $attributes['last_name'],
-            'email' => $attributes['email'],
-            'password' => Hash::make($attributes['password']),
-            'user_type' => $attributes['user_type'],
-            'company' => $company,
-            'phone' => $attributes['phone'] ?? null,
-            'location' => $attributes['location'] ?? null,
-            'verified' => false,
-        ]);
-        UserRegistered::dispatch($user);
+        try {
+            $user = User::create([
+                'first_name' => $attributes['first_name'],
+                'last_name' => $attributes['last_name'],
+                'email' => $attributes['email'],
+                'password' => Hash::make($attributes['password']),
+                'user_type' => $attributes['user_type'],
+                'company' => $company,
+                'phone' => $attributes['phone'] ?? null,
+                'location' => $attributes['location'] ?? null,
+                'verified' => false,
+            ]);
+            UserRegistered::dispatch($user);
 
-        return $user;
+            return $user;
+        } catch (\Exception $e) {
+            \Log::error('User registration failed', [
+                'error' => $e->getMessage(),
+                'attributes' => $attributes
+            ]);
+            throw new \Exception('An error occurred while processing your registration. Please try again later or contact support.');
+        }
     }
 
     public function loginUser(array $credentials): ?User
@@ -43,6 +51,9 @@ class AuthService
         if (!$user || !Hash::check($credentials['password'], $user->password)) {
             return null;
         }
+
+        // Update last login timestamp
+        $user->update(['last_login_at' => now()]);
 
         return $user;
     }

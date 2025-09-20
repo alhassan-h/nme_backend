@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\MarketInsightRequest;
 use App\Http\Requests\Newsletter\CreateNewsletterRequest;
+use App\Mail\PasswordResetByAdmin;
 use App\Models\User;
+use App\Models\UserLoginHistory;
 use App\Models\Product;
 use App\Models\Newsletter;
 use App\Models\NewsletterSubscriber;
@@ -15,6 +17,8 @@ use App\Services\AdminService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Password;
 use Symfony\Component\HttpFoundation\Response;
 
 class AdminController extends Controller
@@ -48,7 +52,8 @@ class AdminController extends Controller
     {
         try {
             $perPage = (int) $request->get('per_page', 15);
-            $users = $this->adminService->paginatedUsers($perPage);
+            $filters = $request->only(['search', 'status', 'user_type', 'date_from', 'date_to']);
+            $users = $this->adminService->paginatedUsers($perPage, $filters);
 
             return response()->json([
                 'success' => true,
@@ -64,12 +69,492 @@ class AdminController extends Controller
         }
     }
 
-    public function updateUserStatus(Request $request, User $id): JsonResponse
+    public function showUser(User $user): JsonResponse
     {
         try {
-            $request->validate(['status' => 'required|in:active,inactive']);
+            return response()->json([
+                'success' => true,
+                'data' => $user->load('products', 'forumPosts', 'marketInsights'),
+                'message' => 'User retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve user',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 
-            $updatedUser = $this->adminService->updateUserStatus($id, $request->input('status'));
+
+    public function getUserStats(User $user): JsonResponse
+    {
+        try {
+            $stats = [
+                'total_listings' => $user->products()->count(),
+                'active_listings' => $user->products()->where('status', 'active')->count(),
+                'total_views' => $user->products()->sum('views') ?? 0,
+                'total_sales' => $user->products()->where('status', 'sold')->count(),
+                'total_forum_posts' => $user->forumPosts()->count(),
+                'total_market_insights' => $user->marketInsights()->count(),
+                'total_gallery_images' => \DB::table('gallery_images')->where('user_id', $user->id)->count(),
+                'last_login' => $user->last_login_at ?? null,
+                'account_age_days' => $user->created_at->diffInDays(now()),
+            ];
+
+            return response()->json([
+                'success' => true,
+                'data' => $stats,
+                'message' => 'User stats retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve user stats',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getUserActivity(Request $request, User $user): JsonResponse
+    {
+        try {
+            $perPage = (int) $request->get('per_page', 20);
+            $filters = $request->only(['type', 'date_from', 'date_to']);
+
+            // Build activity query from multiple sources
+            $activities = collect();
+
+            // Login activities from user_login_history table
+            $loginActivities = \DB::table('user_login_history')
+                ->where('user_id', $user->id)
+                ->where('successful', true)
+                ->select([
+                    'id',
+                    'login_at as timestamp',
+                    'ip_address',
+                    'device_type',
+                    'browser',
+                    'operating_system'
+                ])
+                ->when($filters['date_from'] ?? null, fn($q) => $q->where('login_at', '>=', $filters['date_from']))
+                ->when($filters['date_to'] ?? null, fn($q) => $q->where('login_at', '<=', $filters['date_to']))
+                ->when($filters['type'] ?? null && $filters['type'] === 'login', fn($q) => $q->whereRaw('1=1')) // Always include for login type
+                ->get()
+                ->map(function ($item) {
+                    $deviceInfo = $this->formatDeviceInfo($item);
+                    return [
+                        'id' => "login_{$item->id}",
+                        'type' => 'login',
+                        'description' => 'User logged in',
+                        'timestamp' => $item->timestamp,
+                        'status' => 'success',
+                        'ip_address' => $item->ip_address,
+                        'device_info' => $deviceInfo
+                    ];
+                });
+
+            // Product activities
+            $productActivities = $user->products()
+                ->selectRaw("'product' as type, title as description, created_at as timestamp, status")
+                ->when($filters['date_from'] ?? null, fn($q) => $q->where('created_at', '>=', $filters['date_from']))
+                ->when($filters['date_to'] ?? null, fn($q) => $q->where('created_at', '<=', $filters['date_to']))
+                ->when($filters['type'] ?? null, fn($q) => $q->where('type', $filters['type']))
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'id' => "product_{$item->id}",
+                        'type' => 'product_created',
+                        'description' => "Created product: {$item->description}",
+                        'timestamp' => $item->timestamp,
+                        'status' => $item->status,
+                        'ip_address' => null,
+                        'device_info' => null
+                    ];
+                });
+
+            // Forum post activities
+            $forumActivities = $user->forumPosts()
+                ->selectRaw("'forum' as type, title as description, created_at as timestamp")
+                ->when($filters['date_from'] ?? null, fn($q) => $q->where('created_at', '>=', $filters['date_from']))
+                ->when($filters['date_to'] ?? null, fn($q) => $q->where('created_at', '<=', $filters['date_to']))
+                ->when($filters['type'] ?? null, fn($q) => $q->where('type', $filters['type']))
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'id' => "forum_{$item->id}",
+                        'type' => 'forum_post',
+                        'description' => "Created forum post: {$item->description}",
+                        'timestamp' => $item->timestamp,
+                        'status' => 'success',
+                        'ip_address' => null,
+                        'device_info' => null
+                    ];
+                });
+
+            // Market insight activities
+            $insightActivities = $user->marketInsights()
+                ->selectRaw("'insight' as type, title as description, created_at as timestamp, status")
+                ->when($filters['date_from'] ?? null, fn($q) => $q->where('created_at', '>=', $filters['date_from']))
+                ->when($filters['date_to'] ?? null, fn($q) => $q->where('created_at', '<=', $filters['date_to']))
+                ->when($filters['type'] ?? null, fn($q) => $q->where('type', $filters['type']))
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'id' => "insight_{$item->id}",
+                        'type' => 'market_insight',
+                        'description' => "Created market insight: {$item->description}",
+                        'timestamp' => $item->timestamp,
+                        'status' => $item->status,
+                        'ip_address' => null,
+                        'device_info' => null
+                    ];
+                });
+
+            // Combine and sort activities
+            $activities = $loginActivities
+                ->concat($productActivities)
+                ->concat($forumActivities)
+                ->concat($insightActivities)
+                ->sortByDesc('timestamp')
+                ->values();
+
+            // Paginate manually
+            $total = $activities->count();
+            $paginatedActivities = $activities->forPage(
+                $request->get('page', 1),
+                $perPage
+            );
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'data' => $paginatedActivities,
+                    'current_page' => (int) $request->get('page', 1),
+                    'per_page' => $perPage,
+                    'total' => $total,
+                    'last_page' => ceil($total / $perPage),
+                ],
+                'message' => 'User activity retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve user activity',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    private function parseDeviceInfo(string $name): string
+    {
+        // Try to extract device info from token name
+        // This is a basic implementation - you might want to enhance this
+        if (str_contains($name, 'web')) {
+            return 'Web Browser';
+        } elseif (str_contains($name, 'mobile')) {
+            return 'Mobile Device';
+        } elseif (str_contains($name, 'api')) {
+            return 'API Access';
+        }
+
+        return 'Unknown Device';
+    }
+
+    private function formatDeviceInfo($item): string
+    {
+        $deviceInfo = [];
+
+        if ($item->device_type) {
+            $deviceInfo[] = ucfirst($item->device_type);
+        }
+
+        if ($item->browser) {
+            $deviceInfo[] = $item->browser;
+        }
+
+        if ($item->operating_system) {
+            $deviceInfo[] = $item->operating_system;
+        }
+
+        return !empty($deviceInfo) ? implode(' • ', $deviceInfo) : 'Unknown Device';
+    }
+
+    public function getUserLoginHistory(Request $request, User $user): JsonResponse
+    {
+        try {
+            $perPage = (int) $request->get('per_page', 20);
+            $filters = $request->only(['date_from', 'date_to', 'device_type', 'successful']);
+
+            $query = $user->loginHistory()->with('user');
+
+            // Apply filters
+            if (!empty($filters['date_from'])) {
+                $query->where('login_at', '>=', $filters['date_from']);
+            }
+
+            if (!empty($filters['date_to'])) {
+                $query->where('login_at', '<=', $filters['date_to']);
+            }
+
+            if (!empty($filters['device_type'])) {
+                $query->where('device_type', $filters['device_type']);
+            }
+
+            if (isset($filters['successful'])) {
+                $query->where('successful', (bool) $filters['successful']);
+            }
+
+            // Order by login date descending
+            $query->orderBy('login_at', 'desc');
+
+            $loginHistory = $query->paginate($perPage);
+
+            return response()->json([
+                'success' => true,
+                'data' => $loginHistory,
+                'message' => 'User login history retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve user login history',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getLoginHistory(User $user, UserLoginHistory $loginHistory): JsonResponse
+    {
+        try {
+            // Ensure the login history belongs to the user
+            if ($loginHistory->user_id !== $user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Login history not found for this user'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $loginHistory->load('user'),
+                'message' => 'Login history retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve login history',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function updateLoginHistory(Request $request, User $user, UserLoginHistory $loginHistory): JsonResponse
+    {
+        try {
+            // Ensure the login history belongs to the user
+            if ($loginHistory->user_id !== $user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Login history not found for this user'
+                ], 404);
+            }
+
+            $validated = $request->validate([
+                'ip_address' => 'nullable|string|max:45',
+                'device_type' => 'nullable|string|in:desktop,mobile,tablet',
+                'browser' => 'nullable|string|max:255',
+                'operating_system' => 'nullable|string|max:255',
+                'location' => 'nullable|string|max:255',
+                'successful' => 'boolean',
+                'failure_reason' => 'nullable|string|max:500',
+            ]);
+
+            $loginHistory->update($validated);
+
+            return response()->json([
+                'success' => true,
+                'data' => $loginHistory->load('user'),
+                'message' => 'Login history updated successfully'
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update login history',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function deleteLoginHistory(User $user, UserLoginHistory $loginHistory): JsonResponse
+    {
+        try {
+            // Ensure the login history belongs to the user
+            if ($loginHistory->user_id !== $user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Login history not found for this user'
+                ], 404);
+            }
+
+            $loginHistory->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Login history deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete login history',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getUserListings(Request $request, User $user): JsonResponse
+    {
+        try {
+            $perPage = (int) $request->get('per_page', 15);
+            $filters = $request->only(['status', 'search', 'date_from', 'date_to', 'sort_by', 'sort_order']);
+
+            $query = $user->products()->with('mineralCategory');
+
+            // Apply filters
+            if (!empty($filters['status'])) {
+                $query->where('status', $filters['status']);
+            }
+
+            if (!empty($filters['search'])) {
+                $search = $filters['search'];
+                $query->where(function ($q) use ($search) {
+                    $q->where('title', 'like', "%{$search}%")
+                      ->orWhere('description', 'like', "%{$search}%");
+                });
+            }
+
+            if (!empty($filters['date_from'])) {
+                $query->where('created_at', '>=', $filters['date_from']);
+            }
+
+            if (!empty($filters['date_to'])) {
+                $query->where('created_at', '<=', $filters['date_to']);
+            }
+
+            // Apply sorting
+            $sortBy = $filters['sort_by'] ?? 'created_at';
+            $sortOrder = $filters['sort_order'] ?? 'desc';
+            $query->orderBy($sortBy, $sortOrder);
+
+            $listings = $query->paginate($perPage);
+
+            return response()->json([
+                'success' => true,
+                'data' => $listings,
+                'message' => 'User listings retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve user listings',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getUserGallery(Request $request, User $user): JsonResponse
+    {
+        try {
+            $perPage = (int) $request->get('per_page', 20);
+            $filters = $request->only(['type', 'date_from', 'date_to', 'sort_by', 'sort_order']);
+
+            $query = \DB::table('gallery_images')
+                ->where('user_id', $user->id)
+                ->select('*');
+
+            // Apply filters
+            if (!empty($filters['type'])) {
+                $query->where('type', $filters['type']);
+            }
+
+            if (!empty($filters['date_from'])) {
+                $query->where('created_at', '>=', $filters['date_from']);
+            }
+
+            if (!empty($filters['date_to'])) {
+                $query->where('created_at', '<=', $filters['date_to']);
+            }
+
+            // Apply sorting
+            $sortBy = $filters['sort_by'] ?? 'created_at';
+            $sortOrder = $filters['sort_order'] ?? 'desc';
+            $query->orderBy($sortBy, $sortOrder);
+
+            $gallery = $query->paginate($perPage);
+
+            return response()->json([
+                'success' => true,
+                'data' => $gallery,
+                'message' => 'User gallery retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve user gallery',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function updateUser(Request $request, User $user): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'first_name' => 'required|string|max:255',
+                'last_name' => 'required|string|max:255',
+                'email' => 'required|email|unique:users,email,' . $user->id,
+                'phone' => 'required|string|max:20',
+                'user_type' => 'required|in:buyer,seller,both,admin',
+                'company' => 'nullable|string|max:255',
+                'bio' => 'nullable|string|max:1000',
+                'website' => 'nullable|url|max:255',
+                'location' => 'nullable|string|max:255',
+            ]);
+
+            $user->update($validated);
+
+            return response()->json([
+                'success' => true,
+                'data' => $user,
+                'message' => 'User updated successfully'
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update user',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function updateUserStatus(Request $request, User $user): JsonResponse
+    {
+        try {
+            $request->validate(['status' => 'required|in:active,inactive,suspended,banned']);
+
+            $updatedUser = $this->adminService->updateUserStatus($user, $request->input('status'));
 
             return response()->json([
                 'success' => true,
@@ -86,6 +571,139 @@ class AdminController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update user status',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function resetUserPassword(User $user): JsonResponse
+    {
+        try {
+            // Generate a password reset token
+            $token = Password::createToken($user);
+
+            // Generate a temporary password and update it
+            $tempPassword = \Illuminate\Support\Str::random(12);
+            $user->update([
+                'password' => \Illuminate\Support\Facades\Hash::make($tempPassword)
+            ]);
+
+            // Create reset link
+            $frontendUrl = env('FRONTEND_URL', 'http://localhost:3000');
+            $resetLink = $frontendUrl . '/auth/reset-password?token=' . $token . '&email=' . urlencode($user->email);
+
+            // Send email notification
+            try {
+                Mail::to($user->email)->send(new PasswordResetByAdmin($user, $resetLink));
+            } catch (\Exception $mailException) {
+                \Log::error('Failed to send password reset email to user', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'error' => $mailException->getMessage()
+                ]);
+
+                // Continue with success response but log the email failure
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Password reset successfully, but email notification failed to send.',
+                    'data' => [
+                        'reset_link' => $resetLink // For testing purposes
+                    ]
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Password reset successfully. User has been notified via email.',
+                'data' => [
+                    'reset_link' => $resetLink // For testing purposes, remove in production
+                ]
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to reset user password', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to reset password',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function uploadUserAvatar(Request $request, User $user): JsonResponse
+    {
+        try {
+            $request->validate([
+                'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048'
+            ]);
+
+            if ($request->hasFile('avatar')) {
+                $file = $request->file('avatar');
+                $filename = time() . '_' . $user->id . '.' . $file->getClientOriginalExtension();
+                $path = $file->storeAs('avatars', $filename, 'public');
+
+                // Delete old avatar if exists
+                if ($user->avatar && \Illuminate\Support\Facades\Storage::disk('public')->exists('avatars/' . $user->avatar)) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete('avatars/' . $user->avatar);
+                }
+
+                $user->update(['avatar' => $filename]);
+
+                return response()->json([
+                    'success' => true,
+                    'data' => $user,
+                    'message' => 'Avatar uploaded successfully'
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'No avatar file provided'
+            ], 400);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to upload avatar',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function deleteUser(User $user): JsonResponse
+    {
+        try {
+            // Prevent deletion of admin users
+            if ($user->user_type === 'admin') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot delete admin users'
+                ], 403);
+            }
+
+            // Delete user's avatar if exists
+            if ($user->avatar && \Illuminate\Support\Facades\Storage::disk('public')->exists('avatars/' . $user->avatar)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete('avatars/' . $user->avatar);
+            }
+
+            $user->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'User deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete user',
                 'error' => $e->getMessage()
             ], 500);
         }

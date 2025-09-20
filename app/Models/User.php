@@ -31,11 +31,13 @@ class User extends Authenticatable
         'phone',
         'location',
         'verified',
+        'status',
         'first_name',
         'last_name',
         'bio',
         'website',
         'avatar',
+        'last_login_at',
     ];
 
     protected $appends = [
@@ -66,6 +68,7 @@ class User extends Authenticatable
     protected $attributes = [
         'user_type' => 'buyer',
         'verified' => false,
+        'status' => 'active',
     ];
 
     /**
@@ -109,6 +112,11 @@ class User extends Authenticatable
     public function marketInsightLikes()
     {
         return $this->hasMany(MarketInsightLike::class);
+    }
+
+    public function loginHistory()
+    {
+        return $this->hasMany(UserLoginHistory::class);
     }
 
     public function getUserTypeAttribute()

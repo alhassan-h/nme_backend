@@ -7,6 +7,7 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\ResetPasswordRequest;
 use App\Models\User;
+use App\Models\UserLoginHistory;
 use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -29,10 +30,34 @@ class AuthController extends Controller
         $user = $this->authService->loginUser($request->only(['email', 'password']));
 
         if (!$user) {
+            // Log failed login attempt
+            $email = $request->input('email');
+            $existingUser = User::where('email', $email)->first();
+            if ($existingUser) {
+                UserLoginHistory::logLogin(
+                    $existingUser,
+                    $request->ip(),
+                    $request->userAgent(),
+                    false,
+                    'Invalid credentials'
+                );
+            }
+
             return response()->json([
                 'message' => 'Invalid credentials',
             ], 401);
         }
+
+        // Log successful login
+        UserLoginHistory::logLogin(
+            $user,
+            $request->ip(),
+            $request->userAgent(),
+            true
+        );
+
+        // Update user's last login timestamp
+        $user->update(['last_login_at' => now()]);
 
         $token = $user->createToken('api-token')->plainTextToken;
 
@@ -45,15 +70,21 @@ class AuthController extends Controller
 
     public function register(RegisterRequest $request): JsonResponse
     {
-        $user = $this->authService->registerUser($request->validated());
+        try {
+            $user = $this->authService->registerUser($request->validated());
 
-        $token = $user->createToken('api-token')->plainTextToken;
+            $token = $user->createToken('api-token')->plainTextToken;
 
-        return response()->json([
-            'message' => 'Registration successful',
-            'token' => $token,
-            'user' => $user,
-        ], Response::HTTP_CREATED);
+            return response()->json([
+                'message' => 'Registration successful',
+                'token' => $token,
+                'user' => $user,
+            ], Response::HTTP_CREATED);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     public function forgotPassword(ForgotPasswordRequest $request): JsonResponse

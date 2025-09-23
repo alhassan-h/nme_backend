@@ -19,14 +19,17 @@ class GalleryImage extends Model
         'description',
         'views',
         'user_id',
+        'status',
     ];
 
     protected $casts = [
         'views' => 'integer',
+        'status' => 'string',
     ];
 
     protected $attributes = [
         'views' => 0,
+        'status' => 'pending',
     ];
 
     public function uploader(): BelongsTo

@@ -112,17 +112,24 @@ Route::middleware('auth:sanctum')->group(function () {
 // Gallery
 Route::get('gallery', [GalleryController::class, 'index'])->name('gallery.index');
 Route::get('gallery/{id}', [GalleryController::class, 'show'])->name('gallery.show');
+Route::get('storage/gallery/{filename}', [GalleryController::class, 'serveImage'])->name('gallery.serve');
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('gallery', [GalleryController::class, 'store'])->name('gallery.store');
     Route::post('gallery/{id}/like', [GalleryController::class, 'toggleLike'])->name('gallery.toggleLike');
+    Route::get('gallery/{id}/like-status', [GalleryController::class, 'checkLikeStatus'])->name('gallery.likeStatus');
     Route::post('gallery/{id}/view', [GalleryController::class, 'incrementView'])->name('gallery.incrementView');
 });
 
 // Admin Gallery Routes
 Route::middleware(['auth:sanctum', 'can:admin'])->prefix('admin/gallery')->group(function () {
     Route::get('/', [GalleryController::class, 'adminIndex'])->name('admin.gallery.index');
-    Route::get('/{id}', [GalleryController::class, 'show'])->name('admin.gallery.show');
+    Route::get('/{id}', [GalleryController::class, 'adminShow'])->name('admin.gallery.show');
     Route::put('/{id}', [GalleryController::class, 'update'])->name('admin.gallery.update');
+    Route::put('/{id}/status', [GalleryController::class, 'updateStatus'])->name('admin.gallery.updateStatus');
+    Route::put('/{id}/approve', [GalleryController::class, 'approve'])->name('admin.gallery.approve');
+    Route::put('/{id}/publish', [GalleryController::class, 'publish'])->name('admin.gallery.publish');
+    Route::put('/{id}/unpublish', [GalleryController::class, 'unpublish'])->name('admin.gallery.unpublish');
+    Route::put('/{id}/hide', [GalleryController::class, 'hide'])->name('admin.gallery.hide');
     Route::delete('/{id}', [GalleryController::class, 'destroy'])->name('admin.gallery.destroy');
 });
 

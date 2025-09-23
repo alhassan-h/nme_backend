@@ -39,6 +39,13 @@ class GalleryController extends Controller
         return response()->json($image);
     }
 
+    public function adminShow(int $id): JsonResponse
+    {
+        $image = $this->galleryService->getAdminImage($id);
+
+        return response()->json($image);
+    }
+
     public function store(Request $request): JsonResponse
     {
         $request->validate([
@@ -60,9 +67,15 @@ class GalleryController extends Controller
     public function toggleLike(int $id): JsonResponse
     {
         $user = Auth::user();
-        $this->galleryService->toggleLike($id, $user->id);
+        $liked = $this->galleryService->toggleLike($id, $user->id);
 
-        return response()->json(null, Response::HTTP_NO_CONTENT);
+        // Get updated like count
+        $image = $this->galleryService->getImage($id);
+
+        return response()->json([
+            'liked' => $liked,
+            'likes_count' => $image['likes_count']
+        ]);
     }
 
     public function incrementView(int $id): JsonResponse
@@ -106,5 +119,87 @@ class GalleryController extends Controller
         $paginated = $this->galleryService->getAdminImages($filters);
 
         return response()->json($paginated);
+    }
+
+    public function approve(int $id): JsonResponse
+    {
+        try {
+            $image = $this->galleryService->approveImage($id);
+            return response()->json($image);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['message' => 'Gallery image not found'], 404);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Failed to approve image'], 500);
+        }
+    }
+
+    public function publish(int $id): JsonResponse
+    {
+        try {
+            $image = $this->galleryService->publishImage($id);
+            return response()->json($image);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['message' => 'Gallery image not found'], 404);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Failed to publish image'], 500);
+        }
+    }
+
+    public function unpublish(int $id): JsonResponse
+    {
+        try {
+            $image = $this->galleryService->unpublishImage($id);
+            return response()->json($image);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['message' => 'Gallery image not found'], 404);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Failed to unpublish image'], 500);
+        }
+    }
+
+    public function hide(int $id): JsonResponse
+    {
+        try {
+            $image = $this->galleryService->hideImage($id);
+            return response()->json($image);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['message' => 'Gallery image not found'], 404);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Failed to hide image'], 500);
+        }
+    }
+
+    public function updateStatus(int $id, Request $request): JsonResponse
+    {
+        $request->validate([
+            'status' => 'required|in:published,pending,unpublished,hidden',
+        ]);
+
+        $image = $this->galleryService->updateImageStatus($id, $request->status);
+        return response()->json($image);
+    }
+
+    public function serveImage(string $filename)
+    {
+        $path = storage_path('app/public/gallery/' . $filename);
+
+        if (!file_exists($path)) {
+            abort(404);
+        }
+
+        return response()->file($path, [
+            'Cache-Control' => 'public, max-age=31536000',
+        ]);
+    }
+
+    public function checkLikeStatus(int $id): JsonResponse
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['liked' => false]);
+        }
+
+        $liked = $this->galleryService->checkUserLikeStatus($id, $user->id);
+        return response()->json(['liked' => $liked]);
     }
 }

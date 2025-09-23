@@ -57,8 +57,6 @@ class GalleryService
             ->where('status', 'published')
             ->findOrFail($id);
 
-        \Log::info('location', ['location' => $image->location ? $image->location->name : 'Unknown Location']);
-
         return [
             'id' => $image->id,
             'title' => ucfirst($image->category) . ' Image',

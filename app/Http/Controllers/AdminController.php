@@ -1331,7 +1331,7 @@ class AdminController extends Controller
 
             // Use service class to handle sending logic
             $this->adminService->sendNewsletter($newsletter);
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $newsletter->load('recipients'),
@@ -1409,6 +1409,225 @@ class AdminController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve newsletter stats',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // Admin Listings (Products) Management Methods
+
+    public function listings(Request $request): JsonResponse
+    {
+        try {
+            $perPage = (int) $request->get('per_page', 15);
+            $filters = $request->only(['search', 'status', 'category', 'seller_id', 'date_from', 'date_to', 'sort_by', 'sort_order']);
+
+            $query = Product::with(['seller', 'mineralCategory', 'location', 'unit']);
+
+            // Apply filters
+            if (!empty($filters['status'])) {
+                $query->where('status', $filters['status']);
+            }
+
+            if (!empty($filters['category'])) {
+                $query->where('mineral_category_id', $filters['category']);
+            }
+
+            if (!empty($filters['seller_id'])) {
+                $query->where('user_id', $filters['seller_id']);
+            }
+
+            if (!empty($filters['search'])) {
+                $search = $filters['search'];
+                $query->where(function ($q) use ($search) {
+                    $q->where('title', 'like', "%{$search}%")
+                      ->orWhere('description', 'like', "%{$search}%")
+                      ->orWhereHas('user', function ($userQuery) use ($search) {
+                          $userQuery->where('first_name', 'like', "%{$search}%")
+                                    ->orWhere('last_name', 'like', "%{$search}%")
+                                    ->orWhere('company', 'like', "%{$search}%");
+                      });
+                });
+            }
+
+            if (!empty($filters['date_from'])) {
+                $query->where('created_at', '>=', $filters['date_from']);
+            }
+
+            if (!empty($filters['date_to'])) {
+                $query->where('created_at', '<=', $filters['date_to']);
+            }
+
+            // Apply sorting
+            $sortBy = $filters['sort_by'] ?? 'created_at';
+            $sortOrder = $filters['sort_order'] ?? 'desc';
+            $query->orderBy($sortBy, $sortOrder);
+
+            $listings = $query->paginate($perPage);
+
+            // Transform data for frontend
+            $transformedListings = $listings->through(function ($product) {
+                return [
+                    'id' => $product->id,
+                    'title' => $product->title,
+                    'description' => $product->description,
+                    'category' => $product->mineralCategory?->name ?? 'uncategorized',
+                    'price' => $product->price,
+                    'quantity' => $product->quantity,
+                    'unit' => $product->unit?->name ?? 'N/A',
+                    'location' => $product->location?->name ?? 'N/A',
+                    'seller' => $product->seller ? trim($product->seller->first_name . ' ' . $product->seller->last_name) : 'Unknown',
+                    'sellerId' => $product->seller_id,
+                    'status' => $product->status,
+                    'createdAt' => $product->created_at->toISOString(),
+                    'updatedAt' => $product->updated_at->toISOString(),
+                    'views' => $product->views ?? 0,
+                    'inquiries' => 0, // TODO: Add inquiries count if available
+                    'isVerified' => $product->seller?->status === 'active' && $product->seller?->email_verified_at !== null,
+                ];
+            });
+
+            // Calculate stats
+            $stats = [
+                'total_listings' => Product::count(),
+                'active_listings' => Product::where('status', 'active')->count(),
+                'pending_listings' => Product::where('status', 'pending')->count(),
+                'total_value' => Product::selectRaw('SUM(COALESCE(price, 0) * COALESCE(quantity, 0)) as total_value')->first()->total_value ?? 0,
+            ];
+
+            return response()->json([
+                'success' => true,
+                'data' => $transformedListings,
+                'stats' => $stats,
+                'message' => 'Listings retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve listings',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function showListing(Product $product): JsonResponse
+    {
+        try {
+            $product->load(['seller', 'mineralCategory', 'location', 'unit']);
+
+            $listing = [
+                'id' => $product->id,
+                'title' => $product->title,
+                'description' => $product->description,
+                'category' => $product->mineralCategory?->name ?? 'uncategorized',
+                'price' => $product->price,
+                'quantity' => $product->quantity,
+                'unit' => $product->unit?->name ?? 'N/A',
+                'location' => $product->location?->name ?? 'N/A',
+                'seller' => $product->seller ? trim($product->seller->first_name . ' ' . $product->seller->last_name) : 'Unknown',
+                'sellerId' => $product->seller_id,
+                'status' => $product->status,
+                'createdAt' => $product->created_at->toISOString(),
+                'updatedAt' => $product->updated_at->toISOString(),
+                'views' => $product->views ?? 0,
+                'inquiries' => 0, // TODO: To add inquiries count when available
+                'isVerified' => $product->seller?->status === 'active' && $product->seller?->email_verified_at !== null,
+                'mineral_category' => $product->mineralCategory ? ['name' => $product->mineralCategory->name] : null,
+                'mineral_category_id' => $product->mineral_category_id,
+                'unit_id' => $product->unit_id,
+                'location_id' => $product->location_id,
+            ];
+
+            return response()->json([
+                'success' => true,
+                'data' => $listing,
+                'message' => 'Listing retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve listing',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function updateListing(Request $request, Product $product): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'title' => 'required|string|max:255',
+                'description' => 'required|string',
+                'price' => 'required|numeric|min:0',
+                'quantity' => 'required|integer|min:1',
+                'unit_id' => 'nullable|integer|exists:units,id',
+                'location_id' => 'nullable|integer|exists:locations,id',
+                'mineral_category_id' => 'nullable|integer|exists:mineral_categories,id',
+                'status' => 'required|in:active,pending,suspended,expired,sold',
+            ]);
+
+            $product->update($validated);
+
+            return response()->json([
+                'success' => true,
+                'data' => $product->load(['seller', 'mineralCategory', 'location', 'unit']),
+                'message' => 'Listing updated successfully'
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update listing',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function deleteListing(Product $product): JsonResponse
+    {
+        try {
+            $product->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Listing deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete listing',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function updateListingStatus(Request $request, Product $product): JsonResponse
+    {
+        try {
+            $request->validate(['status' => 'required|in:active,pending,suspended,expired,sold']);
+
+            $product->update(['status' => $request->input('status')]);
+
+            return response()->json([
+                'success' => true,
+                'data' => $product,
+                'message' => 'Listing status updated successfully'
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update listing status',
                 'error' => $e->getMessage()
             ], 500);
         }

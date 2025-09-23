@@ -37,4 +37,9 @@ class Location extends Model
     {
         return $this->hasMany(Product::class, 'location_id');
     }
+
+    public function galleryImages(): HasMany
+    {
+        return $this->hasMany(GalleryImage::class, 'location_id');
+    }
 }

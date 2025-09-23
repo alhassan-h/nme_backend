@@ -21,8 +21,6 @@ class Product extends Model
         'description',
         'price',
         'quantity',
-        'unit',
-        'location',
         'images',
         'seller_id',
         'mineral_category_id',
@@ -82,8 +80,9 @@ class Product extends Model
             });
         }
 
+        // Filter by location name or ID
         if (!empty($filters['location'])) {
-            $query->where('location', $filters['location']);
+            $query->where('location_id', $filters['location']);
         }
 
         if (isset($filters['min_price'])) {

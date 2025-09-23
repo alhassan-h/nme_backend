@@ -144,6 +144,14 @@ Route::middleware(['auth:sanctum', 'can:admin'])->prefix('admin')->group(functio
     Route::post('users/{user}/reset-password', [AdminController::class, 'resetUserPassword'])->name('admin.users.resetPassword');
     Route::post('users/{user}/avatar', [AdminController::class, 'uploadUserAvatar'])->name('admin.users.uploadAvatar');
     Route::delete('users/{user}', [AdminController::class, 'deleteUser'])->name('admin.users.delete');
+
+    // Admin Listings (Products) Management
+    Route::get('listings', [AdminController::class, 'listings'])->name('admin.listings.index');
+    Route::get('listings/{product}', [AdminController::class, 'showListing'])->name('admin.listings.show');
+    Route::put('listings/{product}', [AdminController::class, 'updateListing'])->name('admin.listings.update');
+    Route::delete('listings/{product}', [AdminController::class, 'deleteListing'])->name('admin.listings.delete');
+    Route::put('listings/{product}/status', [AdminController::class, 'updateListingStatus'])->name('admin.listings.updateStatus');
+
     Route::get('products/pending', [AdminController::class, 'pendingProducts'])->name('admin.products.pending');
     Route::put('products/{id}/approve', [AdminController::class, 'approveProduct'])->name('admin.products.approve');
     Route::post('newsletters', [AdminController::class, 'createNewsletter'])->name('admin.newsletters.create');

@@ -118,12 +118,5 @@ class AuthService
 
         // Delete the token
         DB::table('password_reset_tokens')->where('email', $credentials['email'])->delete();
-
-        // Log the password reset
-        \Log::info('Password reset successful', [
-            'user_id' => $user->id,
-            'email' => $user->email,
-            'ip' => request()->ip(),
-        ]);
     }
 }

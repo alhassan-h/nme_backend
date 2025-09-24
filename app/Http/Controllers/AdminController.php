@@ -1632,4 +1632,132 @@ class AdminController extends Controller
             ], 500);
         }
     }
+
+    public function getListingsValueBreakdown(): JsonResponse
+    {
+        try {
+            // Get total value by category
+            $categoryBreakdown = Product::selectRaw('
+                    COALESCE(mineral_categories.name, \'Uncategorized\') as category_name,
+                    COUNT(products.id) as listing_count,
+                    SUM(COALESCE(products.price, 0) * COALESCE(products.quantity, 0)) as total_value,
+                    AVG(products.price) as avg_price,
+                    MIN(products.price) as min_price,
+                    MAX(products.price) as max_price
+                ')
+                ->leftJoin('mineral_categories', 'products.mineral_category_id', '=', 'mineral_categories.id')
+                ->where('products.status', 'active')
+                ->groupBy('mineral_categories.id', 'mineral_categories.name')
+                ->orderBy('total_value', 'desc')
+                ->get();
+
+            // Get total value by location
+            $locationBreakdown = Product::selectRaw('
+                    COALESCE(locations.name, \'Unknown Location\') as location_name,
+                    COUNT(products.id) as listing_count,
+                    SUM(COALESCE(products.price, 0) * COALESCE(products.quantity, 0)) as total_value
+                ')
+                ->leftJoin('locations', 'products.location_id', '=', 'locations.id')
+                ->where('products.status', 'active')
+                ->where(function ($query) {
+                    $query->whereNull('locations.is_active')
+                          ->orWhere('locations.is_active', true);
+                })
+                ->groupBy('locations.id', 'locations.name')
+                ->orderBy('total_value', 'desc')
+                ->limit(10)
+                ->get();
+
+            // Get top 10 most valuable listings
+            $topListings = Product::selectRaw('
+                    products.id,
+                    products.title,
+                    products.price,
+                    products.quantity,
+                    (COALESCE(products.price, 0) * COALESCE(products.quantity, 0)) as total_value,
+                    COALESCE(mineral_categories.name, \'Uncategorized\') as category_name,
+                    COALESCE(locations.name, \'Unknown Location\') as location_name,
+                    COALESCE(users.first_name, \'\') as first_name,
+                    COALESCE(users.last_name, \'\') as last_name
+                ')
+                ->leftJoin('mineral_categories', 'products.mineral_category_id', '=', 'mineral_categories.id')
+                ->leftJoin('locations', 'products.location_id', '=', 'locations.id')
+                ->leftJoin('users', 'products.seller_id', '=', 'users.id')
+                ->where('products.status', 'active')
+                ->orderBy('total_value', 'desc')
+                ->limit(10)
+                ->get()
+                ->map(function ($listing) {
+                    return [
+                        'id' => $listing->id,
+                        'title' => $listing->title,
+                        'price' => $listing->price,
+                        'quantity' => $listing->quantity,
+                        'total_value' => $listing->total_value,
+                        'category' => $listing->category_name,
+                        'location' => $listing->location_name,
+                        'seller' => trim($listing->first_name . ' ' . $listing->last_name) ?: 'Unknown',
+                    ];
+                });
+
+            // Overall statistics
+            $overallStats = [
+                'total_value' => Product::where('status', 'active')->selectRaw('SUM(COALESCE(price, 0) * COALESCE(quantity, 0)) as total_value')->first()->total_value ?? 0,
+                'total_listings' => Product::where('status', 'active')->count(),
+                'avg_listing_value' => Product::where('status', 'active')->selectRaw('AVG(COALESCE(price, 0) * COALESCE(quantity, 0)) as avg_value')->first()->avg_value ?? 0,
+                'categories_count' => $categoryBreakdown->count(),
+                'locations_count' => $locationBreakdown->count(),
+            ];
+
+            // Calculate month-over-month growth (simplified - last 30 days vs previous 30 days)
+            $currentMonthValue = Product::where('status', 'active')
+                ->where('created_at', '>=', now()->subDays(30))
+                ->selectRaw('SUM(COALESCE(price, 0) * COALESCE(quantity, 0)) as total_value')
+                ->first()->total_value ?? 0;
+
+            $previousMonthValue = Product::where('status', 'active')
+                ->whereBetween('created_at', [now()->subDays(60), now()->subDays(30)])
+                ->selectRaw('SUM(COALESCE(price, 0) * COALESCE(quantity, 0)) as total_value')
+                ->first()->total_value ?? 0;
+
+            $monthlyGrowth = $previousMonthValue > 0
+                ? (($currentMonthValue - $previousMonthValue) / $previousMonthValue) * 100
+                : ($currentMonthValue > 0 ? 100 : 0);
+
+            $data = [
+                'overall_stats' => $overallStats,
+                'category_breakdown' => $categoryBreakdown,
+                'location_breakdown' => $locationBreakdown,
+                'top_listings' => $topListings,
+                'monthly_growth' => round($monthlyGrowth, 2),
+                'current_month_value' => $currentMonthValue,
+                'previous_month_value' => $previousMonthValue,
+            ];
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'overall_stats' => $overallStats,
+                    'category_breakdown' => $categoryBreakdown,
+                    'location_breakdown' => $locationBreakdown,
+                    'top_listings' => $topListings,
+                    'monthly_growth' => round($monthlyGrowth, 2),
+                    'current_month_value' => $currentMonthValue,
+                    'previous_month_value' => $previousMonthValue,
+                ],
+                'message' => 'Listings value breakdown retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to get listings value breakdown', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve listings value breakdown',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

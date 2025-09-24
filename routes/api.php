@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ForumController;
 use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\LocationController;
+use App\Http\Controllers\MarketInsightCategoryController;
 use App\Http\Controllers\MarketInsightController;
 use App\Http\Controllers\MineralCategoryController;
 use App\Http\Controllers\NewsletterController;
@@ -154,6 +155,7 @@ Route::middleware(['auth:sanctum', 'can:admin'])->prefix('admin')->group(functio
 
     // Admin Listings (Products) Management
     Route::get('listings', [AdminController::class, 'listings'])->name('admin.listings.index');
+    Route::get('listings/value-breakdown', [AdminController::class, 'getListingsValueBreakdown'])->name('admin.listings.value-breakdown');
     Route::get('listings/{product}', [AdminController::class, 'showListing'])->name('admin.listings.show');
     Route::put('listings/{product}', [AdminController::class, 'updateListing'])->name('admin.listings.update');
     Route::delete('listings/{product}', [AdminController::class, 'deleteListing'])->name('admin.listings.delete');
@@ -190,5 +192,37 @@ Route::middleware(['auth:sanctum', 'can:admin'])->prefix('admin')->group(functio
     Route::post('insight-categories', [AdminController::class, 'createInsightCategory'])->name('admin.insight-categories.create');
     Route::put('insight-categories/{category}', [AdminController::class, 'updateInsightCategory'])->name('admin.insight-categories.update');
     Route::delete('insight-categories/{category}', [AdminController::class, 'deleteInsightCategory'])->name('admin.insight-categories.delete');
+
+    // Units management
+    Route::get('units', [UnitController::class, 'adminIndex'])->name('admin.units.index');
+    Route::get('units/{unit}', [UnitController::class, 'show'])->name('admin.units.show');
+    Route::post('units', [UnitController::class, 'store'])->name('admin.units.create');
+    Route::put('units/{unit}', [UnitController::class, 'update'])->name('admin.units.update');
+    Route::put('units/{unit}/toggle-active', [UnitController::class, 'toggleActive'])->name('admin.units.toggle-active');
+    Route::delete('units/{unit}', [UnitController::class, 'destroy'])->name('admin.units.delete');
+
+    // Locations management
+    Route::get('locations', [LocationController::class, 'adminIndex'])->name('admin.locations.index');
+    Route::get('locations/{location}', [LocationController::class, 'show'])->name('admin.locations.show');
+    Route::post('locations', [LocationController::class, 'store'])->name('admin.locations.create');
+    Route::put('locations/{location}', [LocationController::class, 'update'])->name('admin.locations.update');
+    Route::put('locations/{location}/toggle-active', [LocationController::class, 'toggleActive'])->name('admin.locations.toggle-active');
+    Route::delete('locations/{location}', [LocationController::class, 'destroy'])->name('admin.locations.delete');
+
+    // Market Insight Categories management
+    Route::get('market-insight-categories', [MarketInsightCategoryController::class, 'adminIndex'])->name('admin.market-insight-categories.index');
+    Route::get('market-insight-categories/{market_insight_category}', [MarketInsightCategoryController::class, 'show'])->name('admin.market-insight-categories.show');
+    Route::post('market-insight-categories', [MarketInsightCategoryController::class, 'store'])->name('admin.market-insight-categories.create');
+    Route::put('market-insight-categories/{market_insight_category}', [MarketInsightCategoryController::class, 'update'])->name('admin.market-insight-categories.update');
+    Route::put('market-insight-categories/{market_insight_category}/toggle-active', [MarketInsightCategoryController::class, 'toggleActive'])->name('admin.market-insight-categories.toggle-active');
+    Route::delete('market-insight-categories/{market_insight_category}', [MarketInsightCategoryController::class, 'destroy'])->name('admin.market-insight-categories.delete');
+
+    // Mineral Categories management
+    Route::get('mineral-categories', [MineralCategoryController::class, 'adminIndex'])->name('admin.mineral-categories.index');
+    Route::get('mineral-categories/{mineral_category}', [MineralCategoryController::class, 'show'])->name('admin.mineral-categories.show');
+    Route::post('mineral-categories', [MineralCategoryController::class, 'store'])->name('admin.mineral-categories.create');
+    Route::put('mineral-categories/{mineral_category}', [MineralCategoryController::class, 'update'])->name('admin.mineral-categories.update');
+    Route::put('mineral-categories/{mineral_category}/toggle-active', [MineralCategoryController::class, 'toggleActive'])->name('admin.mineral-categories.toggle-active');
+    Route::delete('mineral-categories/{mineral_category}', [MineralCategoryController::class, 'destroy'])->name('admin.mineral-categories.delete');
 });
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum')->name('auth.logout');

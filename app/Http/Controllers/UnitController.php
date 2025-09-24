@@ -2,46 +2,81 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Http\Requests\StoreUnitRequest;
+use App\Http\Requests\UpdateUnitRequest;
+use App\Services\UnitService;
+use Illuminate\Http\JsonResponse;
 
 class UnitController extends Controller
 {
+    protected $unitService;
+
+    public function __construct(UnitService $unitService)
+    {
+        $this->unitService = $unitService;
+    }
+
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(): JsonResponse
     {
-        return \App\Models\Unit::ordered()->get();
+        $units = $this->unitService->getActiveUnits();
+        return response()->json($units);
     }
 
-    public function store(Request $request)
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(StoreUnitRequest $request): JsonResponse
     {
-        $request->validate([
-            'name' => 'required|string|max:255|unique:units',
-            'is_active' => 'boolean',
-        ]);
-
-        $unit = \App\Models\Unit::create($request->all());
+        $unit = $this->unitService->createUnit($request->validated());
         return response()->json($unit, 201);
     }
 
-    public function update(Request $request, $id)
+    /**
+     * Display the specified resource.
+     */
+    public function show(int $id): JsonResponse
     {
-        $unit = \App\Models\Unit::findOrFail($id);
-
-        $request->validate([
-            'name' => 'required|string|max:255|unique:units,name,' . $id,
-            'is_active' => 'boolean',
-        ]);
-
-        $unit->update($request->all());
+        $unit = $this->unitService->getUnit($id);
         return response()->json($unit);
     }
 
-    public function destroy($id)
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(UpdateUnitRequest $request, int $id): JsonResponse
     {
-        $unit = \App\Models\Unit::findOrFail($id);
-        $unit->delete();
+        $unit = $this->unitService->updateUnit($id, $request->validated());
+        return response()->json($unit);
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(int $id): JsonResponse
+    {
+        $this->unitService->deleteUnit($id);
         return response()->json(['message' => 'Unit deleted successfully']);
+    }
+
+    /**
+     * Get units for admin with pagination
+     */
+    public function adminIndex(): JsonResponse
+    {
+        $filters = request()->only(['search', 'per_page', 'page']);
+        $units = $this->unitService->getUnits($filters);
+        return response()->json($units);
+    }
+
+    /**
+     * Toggle unit active status
+     */
+    public function toggleActive(int $id): JsonResponse
+    {
+        $unit = $this->unitService->toggleActive($id);
+        return response()->json($unit);
     }
 }

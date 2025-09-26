@@ -10,6 +10,7 @@ use App\Http\Controllers\MarketInsightCategoryController;
 use App\Http\Controllers\MarketInsightController;
 use App\Http\Controllers\MineralCategoryController;
 use App\Http\Controllers\NewsletterController;
+use App\Http\Controllers\OrganizationSettingController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\UserController;
@@ -35,6 +36,9 @@ Route::prefix('auth')->group(function () {
 Route::post('newsletter/subscribe', [NewsletterController::class, 'subscribe'])->name('newsletter.subscribe');
 Route::get('newsletter/status', [NewsletterController::class, 'checkStatus'])->name('newsletter.status');
 Route::post('newsletter/unsubscribe', [NewsletterController::class, 'unsubscribe'])->name('newsletter.unsubscribe');
+
+// Public maintenance status check
+Route::get('maintenance/status', [OrganizationSettingController::class, 'getMaintenanceStatus'])->name('maintenance.status');
 
 // Mineral Categories
 Route::get('mineral-categories', [MineralCategoryController::class, 'index'])->name('mineral-categories.index');

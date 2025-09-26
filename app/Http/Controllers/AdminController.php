@@ -1645,6 +1645,28 @@ class AdminController extends Controller
         }
     }
 
+    public function checkOrganizationSetting(string $key): JsonResponse
+    {
+        try {
+            $enabled = $this->adminService->isOrganizationSettingEnabled($key);
+
+            return response()->json([
+                'success' => true,
+                'enabled' => $enabled,
+                'key' => $key,
+                'message' => 'Setting checked successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'enabled' => false, // Default to disabled on error
+                'key' => $key,
+                'message' => 'Failed to check setting',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function getListingsValueBreakdown(): JsonResponse
     {
         try {
@@ -2213,7 +2235,7 @@ class AdminController extends Controller
     {
         try {
             $value = $this->organizationSettingService->getSettingValue($key);
-
+            \Log::info("Retrieved organization setting value for key '{$key}': " . var_export($value, true));
             return response()->json([
                 'success' => true,
                 'data' => ['key' => $key, 'value' => $value],
@@ -2290,6 +2312,27 @@ class AdminController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to bulk update organization settings',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getMaintenanceStatus(): JsonResponse
+    {
+        try {
+            $isEnabled = $this->organizationSettingService->isEnabled('maintenance_mode');
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'enabled' => $isEnabled
+                ],
+                'message' => 'Maintenance status retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve maintenance status',
                 'error' => $e->getMessage()
             ], 500);
         }

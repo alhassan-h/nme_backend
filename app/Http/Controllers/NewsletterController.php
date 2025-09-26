@@ -6,6 +6,7 @@ use App\Models\Newsletter;
 use App\Models\NewsletterSubscriber;
 use App\Models\NewsletterRecipient;
 use App\Services\AdminService;
+use App\Services\OrganizationSettingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -14,14 +15,19 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 class NewsletterController extends Controller
 {
     protected AdminService $adminService;
+    protected OrganizationSettingService $settingService;
 
-    public function __construct(AdminService $adminService)
+    public function __construct(AdminService $adminService, OrganizationSettingService $settingService)
     {
         $this->adminService = $adminService;
+        $this->settingService = $settingService;
     }
 
     public function subscribe(Request $request): JsonResponse
     {
+        // Check if newsletter is enabled
+        $this->settingService->checkAccess('newsletter_enabled', 'newsletter subscription');
+
         $validator = Validator::make($request->all(), [
             'email' => 'required|email',
             'name' => 'nullable|string|max:255',

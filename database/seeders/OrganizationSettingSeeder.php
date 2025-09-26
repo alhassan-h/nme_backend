@@ -17,7 +17,7 @@ class OrganizationSettingSeeder extends Seeder
             // Security Settings
             [
                 'key' => 'two_factor_auth_for_admin',
-                'value' => '0',
+                'value' => 'false',
                 'type' => 'security',
                 'description' => 'Enable two-factor authentication for admin accounts',
                 'is_sensitive' => false,

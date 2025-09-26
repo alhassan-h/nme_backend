@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\GalleryService;
+use App\Services\OrganizationSettingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -12,10 +13,12 @@ use Symfony\Component\HttpFoundation\Response;
 class GalleryController extends Controller
 {
     protected GalleryService $galleryService;
+    protected OrganizationSettingService $settingService;
 
-    public function __construct(GalleryService $galleryService)
+    public function __construct(GalleryService $galleryService, OrganizationSettingService $settingService)
     {
         $this->galleryService = $galleryService;
+        $this->settingService = $settingService;
     }
 
     public function index(Request $request): JsonResponse
@@ -48,8 +51,11 @@ class GalleryController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        // Check if gallery is enabled
+        $this->settingService->checkAccess('gallery_enabled', 'gallery');
+
         $request->validate([
-            'image' => 'required|image|max:5120',
+            'image' => 'required|image|max:' . ($this->settingService->getMaxFileSize() * 1024), // Convert MB to KB
             'category' => 'required|string|max:255',
             'location_id' => 'required|numeric|max:255',
             'description' => 'nullable|string',
@@ -60,6 +66,11 @@ class GalleryController extends Controller
         $uploader = Auth::user();
 
         $galleryImage = $this->galleryService->uploadImage($image, $metadata, $uploader);
+
+        // Auto-approve if setting is enabled
+        if ($this->settingService->isEnabled('auto_approve_gallery_images')) {
+            $galleryImage = $this->galleryService->approveImage($galleryImage['id']);
+        }
 
         return response()->json($galleryImage, Response::HTTP_CREATED);
     }

@@ -6,6 +6,7 @@ use App\Http\Requests\Product\ProductCreateRequest;
 use App\Http\Requests\Product\ProductUpdateRequest;
 use App\Models\Product;
 use App\Services\ProductService;
+use App\Services\OrganizationSettingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,10 +15,12 @@ use Symfony\Component\HttpFoundation\Response;
 class ProductController extends Controller
 {
     protected ProductService $productService;
+    protected OrganizationSettingService $settingService;
 
-    public function __construct(ProductService $productService)
+    public function __construct(ProductService $productService, OrganizationSettingService $settingService)
     {
         $this->productService = $productService;
+        $this->settingService = $settingService;
     }
 
     public function index(Request $request): JsonResponse
@@ -40,6 +43,9 @@ class ProductController extends Controller
 
     public function store(ProductCreateRequest $request): JsonResponse
     {
+        // Check if marketplace is enabled
+        $this->settingService->checkAccess('marketplace_enabled', 'marketplace');
+
         $product = $this->productService->createProduct($request->validated(), $request->file('images'));
 
         return response()->json($product, Response::HTTP_CREATED);

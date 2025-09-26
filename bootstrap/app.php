@@ -22,7 +22,17 @@ return Application::configure(basePath: dirname(__DIR__))
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
 
+        $middleware->api(prepend: [
+            \App\Http\Middleware\CheckMaintenanceMode::class,
+        ]);
+
         $middleware->append(\Illuminate\Http\Middleware\HandleCors::class);
+
+        // Register custom middleware aliases
+        $middleware->alias([
+            'check.setting' => \App\Http\Middleware\CheckOrganizationSettings::class,
+            'check.maintenance' => \App\Http\Middleware\CheckMaintenanceMode::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

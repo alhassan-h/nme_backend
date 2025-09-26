@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\OrganizationSetting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -59,5 +60,58 @@ class AuthTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJson(['message' => 'If your email exists in our system, we have sent a password reset link.']);
+    }
+
+    public function test_registration_blocked_when_disabled()
+    {
+        // Disable registration
+        OrganizationSetting::updateOrCreate(
+            ['key' => 'registration_enabled'],
+            ['value' => 'false', 'type' => 'boolean']
+        );
+
+        $userData = [
+            'first_name' => 'Test',
+            'last_name' => 'User',
+            'email' => 'testuser@nme.com',
+            'phone' => '+2348000000000',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'user_type' => 'buyer',
+            'company_name' => 'Test Company',
+        ];
+
+        $response = $this->postJson('/api/auth/register', $userData);
+
+        $response->assertStatus(403)
+            ->assertJson([
+                'message' => 'The user registration feature is currently disabled',
+                'code' => 'FEATURE_DISABLED'
+            ]);
+    }
+
+    public function test_registration_allowed_when_enabled()
+    {
+        // Ensure registration is enabled
+        OrganizationSetting::updateOrCreate(
+            ['key' => 'registration_enabled'],
+            ['value' => 'true', 'type' => 'boolean']
+        );
+
+        $userData = [
+            'first_name' => 'Test',
+            'last_name' => 'User',
+            'email' => 'testuser@nme.com',
+            'phone' => '+2348000000000',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'user_type' => 'buyer',
+            'company_name' => 'Test Company',
+        ];
+
+        $response = $this->postJson('/api/auth/register', $userData);
+
+        $response->assertStatus(201)
+            ->assertJsonStructure(['message', 'token', 'user']);
     }
 }

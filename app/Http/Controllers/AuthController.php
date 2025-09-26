@@ -9,6 +9,7 @@ use App\Http\Requests\Auth\ResetPasswordRequest;
 use App\Models\User;
 use App\Models\UserLoginHistory;
 use App\Services\AuthService;
+use App\Services\OrganizationSettingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,10 +20,12 @@ use Symfony\Component\HttpFoundation\Response;
 class AuthController extends Controller
 {
     protected AuthService $authService;
+    protected OrganizationSettingService $settingService;
 
-    public function __construct(AuthService $authService)
+    public function __construct(AuthService $authService, OrganizationSettingService $settingService)
     {
         $this->authService = $authService;
+        $this->settingService = $settingService;
     }
 
     public function login(LoginRequest $request): JsonResponse
@@ -71,6 +74,9 @@ class AuthController extends Controller
     public function register(RegisterRequest $request): JsonResponse
     {
         try {
+            // Check if registration is enabled
+            $this->settingService->checkAccess('registration_enabled', 'user registration');
+
             $user = $this->authService->registerUser($request->validated());
 
             $token = $user->createToken('api-token')->plainTextToken;

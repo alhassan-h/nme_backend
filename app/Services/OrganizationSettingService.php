@@ -144,4 +144,94 @@ class OrganizationSettingService
 
         return $errors;
     }
+
+    /**
+     * Check if a setting is enabled (boolean check)
+     */
+    public function isEnabled(string $key): bool
+    {
+        $value = $this->getSettingValue($key, 'false');
+        return filter_var($value, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    /**
+     * Check access to a feature and throw exception if disabled
+     */
+    public function checkAccess(string $key, string $operation = null): void
+    {
+        if (!$this->isEnabled($key)) {
+            $message = $operation ?
+                "The {$operation} feature is currently disabled" :
+                "This feature is currently unavailable";
+            throw new \Exception($message, 403);
+        }
+    }
+
+    /**
+     * Get setting value with type casting
+     */
+    public function get(string $key, $default = null)
+    {
+        return $this->getSettingValue($key, $default);
+    }
+
+    /**
+     * Get integer setting value
+     */
+    public function getInt(string $key, int $default = 0): int
+    {
+        $value = $this->getSettingValue($key, $default);
+        return (int) $value;
+    }
+
+    /**
+     * Get float setting value
+     */
+    public function getFloat(string $key, float $default = 0.0): float
+    {
+        $value = $this->getSettingValue($key, $default);
+        return (float) $value;
+    }
+
+    /**
+     * Get JSON setting value as array
+     */
+    public function getJson(string $key, array $default = []): array
+    {
+        $value = $this->getSettingValue($key, json_encode($default));
+        $decoded = json_decode($value, true);
+        return is_array($decoded) ? $decoded : $default;
+    }
+
+    /**
+     * Check if maintenance mode is enabled
+     */
+    public function isMaintenanceMode(): bool
+    {
+        return $this->isEnabled('maintenance_mode');
+    }
+
+    /**
+     * Get password minimum length requirement
+     */
+    public function getPasswordMinLength(): int
+    {
+        return $this->getInt('password_min_length', 8);
+    }
+
+    /**
+     * Get maximum login attempts
+     */
+    public function getMaxLoginAttempts(): int
+    {
+        return $this->getInt('login_attempts', 5);
+    }
+
+    /**
+     * Get maximum file size in MB
+     */
+    public function getMaxFileSize(): int
+    {
+        return $this->getInt('max_file_size', 10);
+    }
 }

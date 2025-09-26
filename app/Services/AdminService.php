@@ -399,4 +399,13 @@ class AdminService
     {
         return MarketInsight::whereIn('id', $ids)->delete();
     }
+
+    /**
+     * Check if an organization setting is enabled
+     */
+    public function isOrganizationSettingEnabled(string $key): bool
+    {
+        $organizationSettingService = app(OrganizationSettingService::class);
+        return $organizationSettingService->isEnabled($key);
+    }
 }

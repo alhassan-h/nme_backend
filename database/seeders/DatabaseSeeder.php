@@ -25,6 +25,9 @@ class DatabaseSeeder extends Seeder
             ForumSeeder::class,
             NewsletterSeeder::class,
             GallerySeeder::class,
+            OrganizationProfileSeeder::class,
+            BusinessSettingSeeder::class,
+            OrganizationSettingSeeder::class,
         ]);
     }
 }

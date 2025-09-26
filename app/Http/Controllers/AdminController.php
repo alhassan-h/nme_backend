@@ -13,7 +13,12 @@ use App\Models\NewsletterSubscriber;
 use App\Models\NewsletterRecipient;
 use App\Models\MarketInsight;
 use App\Models\MarketInsightCategory;
+use App\Models\OrganizationProfile;
+use App\Models\BusinessSetting;
+use App\Models\OrganizationSetting;
 use App\Services\AdminService;
+use App\Services\OrganizationProfileService;
+use App\Services\OrganizationSettingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -24,10 +29,17 @@ use Symfony\Component\HttpFoundation\Response;
 class AdminController extends Controller
 {
     protected AdminService $adminService;
+    protected OrganizationProfileService $organizationProfileService;
+    protected OrganizationSettingService $organizationSettingService;
 
-    public function __construct(AdminService $adminService)
-    {
+    public function __construct(
+        AdminService $adminService,
+        OrganizationProfileService $organizationProfileService,
+        OrganizationSettingService $organizationSettingService
+    ) {
         $this->adminService = $adminService;
+        $this->organizationProfileService = $organizationProfileService;
+        $this->organizationSettingService = $organizationSettingService;
     }
 
     public function dashboardStats(): JsonResponse
@@ -1756,6 +1768,528 @@ class AdminController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve listings value breakdown',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // Organization Profile Settings
+
+    public function getOrganizationProfile(Request $request): JsonResponse
+    {
+        try {
+            $perPage = (int) $request->get('per_page', null);
+            $filters = $request->only(['search', 'type', 'is_public']);
+
+            $profiles = $this->organizationProfileService->getAllProfiles($perPage, $filters);
+
+            return response()->json([
+                'success' => true,
+                'data' => $profiles,
+                'message' => 'Organization profile retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve organization profile',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function updateOrganizationProfile(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'updates' => 'required|array',
+                'updates.*.key' => 'required|string|max:255',
+                'updates.*.value' => 'nullable',
+                'updates.*.type' => 'required|in:string,json,integer,boolean,float',
+                'updates.*.description' => 'nullable|string|max:500',
+                'updates.*.is_public' => 'boolean',
+                'updates.*.sort_order' => 'integer',
+            ]);
+
+            $results = $this->organizationProfileService->bulkUpdate($validated['updates']);
+
+            return response()->json([
+                'success' => true,
+                'data' => $results,
+                'message' => 'Organization profile updated successfully'
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update organization profile',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function createOrganizationProfileEntry(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'key' => 'required|string|max:255|unique:organization_profiles,key',
+                'value' => 'nullable',
+                'type' => 'required|in:string,json,integer,boolean,float',
+                'description' => 'nullable|string|max:500',
+                'is_public' => 'boolean',
+                'sort_order' => 'integer',
+            ]);
+
+            $profile = $this->organizationProfileService->createProfile($validated);
+
+            return response()->json([
+                'success' => true,
+                'data' => $profile,
+                'message' => 'Organization profile entry created successfully'
+            ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create organization profile entry',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function updateOrganizationProfileEntry(Request $request, OrganizationProfile $profile): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'value' => 'nullable',
+                'type' => 'required|in:string,json,integer,boolean,float',
+                'description' => 'nullable|string|max:500',
+                'is_public' => 'boolean',
+                'sort_order' => 'integer',
+            ]);
+
+            $updatedProfile = $this->organizationProfileService->updateProfile($profile, $validated);
+
+            return response()->json([
+                'success' => true,
+                'data' => $updatedProfile,
+                'message' => 'Organization profile entry updated successfully'
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update organization profile entry',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function deleteOrganizationProfileEntry(OrganizationProfile $profile): JsonResponse
+    {
+        try {
+            $this->organizationProfileService->deleteProfile($profile);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Organization profile entry deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete organization profile entry',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // Business Settings
+
+    public function getBusinessSettings(Request $request): JsonResponse
+    {
+        try {
+            $perPage = (int) $request->get('per_page', 15);
+            $filters = $request->only(['search', 'type', 'is_sensitive']);
+
+            $query = BusinessSetting::query();
+
+            if (!empty($filters['search'])) {
+                $search = $filters['search'];
+                $query->where(function ($q) use ($search) {
+                    $q->where('key', 'like', "%{$search}%")
+                      ->orWhere('description', 'like', "%{$search}%");
+                });
+            }
+
+            if (!empty($filters['type'])) {
+                $query->where('type', $filters['type']);
+            }
+
+            if (isset($filters['is_sensitive'])) {
+                $query->where('is_sensitive', (bool) $filters['is_sensitive']);
+            }
+
+            $settings = $query->orderBy('key')->paginate($perPage);
+
+            return response()->json([
+                'success' => true,
+                'data' => $settings,
+                'message' => 'Business settings retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve business settings',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function createBusinessSetting(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'key' => 'required|string|max:255|unique:business_settings,key',
+                'value' => 'nullable|string',
+                'type' => 'required|in:string,json,encrypted',
+                'description' => 'nullable|string|max:500',
+                'is_sensitive' => 'boolean',
+            ]);
+
+            $setting = BusinessSetting::create($validated);
+
+            return response()->json([
+                'success' => true,
+                'data' => $setting,
+                'message' => 'Business setting created successfully'
+            ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create business setting',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function updateBusinessSetting(Request $request, BusinessSetting $setting): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'value' => 'nullable|string',
+                'type' => 'required|in:string,json,encrypted',
+                'description' => 'nullable|string|max:500',
+                'is_sensitive' => 'boolean',
+            ]);
+
+            $setting->update($validated);
+
+            return response()->json([
+                'success' => true,
+                'data' => $setting,
+                'message' => 'Business setting updated successfully'
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update business setting',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function deleteBusinessSetting(BusinessSetting $setting): JsonResponse
+    {
+        try {
+            $setting->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Business setting deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete business setting',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getBusinessSettingValue(string $key): JsonResponse
+    {
+        try {
+            $value = BusinessSetting::getValue($key);
+
+            return response()->json([
+                'success' => true,
+                'data' => ['key' => $key, 'value' => $value],
+                'message' => 'Business setting value retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve business setting value',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function bulkUpdateBusinessSettings(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'settings' => 'required|array',
+                'settings.*.key' => 'required|string|max:255',
+                'settings.*.value' => 'nullable|string',
+                'settings.*.type' => 'required|in:string,json,encrypted',
+                'settings.*.description' => 'nullable|string|max:500',
+                'settings.*.is_sensitive' => 'boolean',
+            ]);
+
+            $results = [];
+            foreach ($validated['settings'] as $settingData) {
+                $setting = BusinessSetting::updateOrCreate(
+                    ['key' => $settingData['key']],
+                    $settingData
+                );
+                $results[] = $setting;
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $results,
+                'message' => 'Business settings updated successfully'
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to bulk update business settings',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // Organization Settings
+
+    public function getOrganizationSettings(Request $request): JsonResponse
+    {
+        try {
+            $perPage = (int) $request->get('per_page', 15);
+            $filters = $request->only(['search', 'type', 'is_sensitive']);
+
+            $settings = $this->organizationSettingService->getPaginatedSettings($perPage, $filters);
+
+            return response()->json([
+                'success' => true,
+                'data' => $settings,
+                'message' => 'Organization settings retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve organization settings',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function createOrganizationSetting(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'key' => 'required|string|max:255|unique:organization_settings,key',
+                'value' => 'nullable',
+                'type' => 'required|in:security,email,platform,content,payment,organization,business',
+                'description' => 'nullable|string|max:500',
+                'is_sensitive' => 'boolean',
+            ]);
+
+            $setting = $this->organizationSettingService->createSetting($validated);
+
+            return response()->json([
+                'success' => true,
+                'data' => $setting,
+                'message' => 'Organization setting created successfully'
+            ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create organization setting',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function updateOrganizationSetting(Request $request, OrganizationSetting $setting): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'value' => 'nullable',
+                'type' => 'required|in:security,email,platform,content,payment,organization,business',
+                'description' => 'nullable|string|max:500',
+                'is_sensitive' => 'boolean',
+            ]);
+
+            $updatedSetting = $this->organizationSettingService->updateSetting($setting, $validated);
+
+            return response()->json([
+                'success' => true,
+                'data' => $updatedSetting,
+                'message' => 'Organization setting updated successfully'
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update organization setting',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function deleteOrganizationSetting(OrganizationSetting $setting): JsonResponse
+    {
+        try {
+            $this->organizationSettingService->deleteSetting($setting);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Organization setting deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete organization setting',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getOrganizationSettingValue(string $key): JsonResponse
+    {
+        try {
+            $value = $this->organizationSettingService->getSettingValue($key);
+
+            return response()->json([
+                'success' => true,
+                'data' => ['key' => $key, 'value' => $value],
+                'message' => 'Organization setting value retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve organization setting value',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getOrganizationSettingsByType(string $type): JsonResponse
+    {
+        try {
+            $settings = $this->organizationSettingService->getSettingsByType($type);
+
+            // Transform settings to include typed values
+            $transformedSettings = $settings->map(function ($setting) {
+                return [
+                    'id' => $setting->id,
+                    'key' => $setting->key,
+                    'value' => $setting->typed_value,
+                    'type' => $setting->type,
+                    'description' => $setting->description,
+                    'is_sensitive' => $setting->is_sensitive,
+                    'created_at' => $setting->created_at,
+                    'updated_at' => $setting->updated_at,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $transformedSettings,
+                'message' => 'Organization settings retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve organization settings by type',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function bulkUpdateOrganizationSettings(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'settings' => 'required|array',
+                'settings.*.key' => 'required|string|max:255',
+                'settings.*.value' => 'nullable',
+                'settings.*.type' => 'required|in:security,email,platform,content,payment,organization,business',
+                'settings.*.description' => 'nullable|string|max:500',
+                'settings.*.is_sensitive' => 'boolean',
+            ]);
+
+            $results = $this->organizationSettingService->bulkUpdateSettings($validated['settings']);
+
+            return response()->json([
+                'success' => true,
+                'data' => $results,
+                'message' => 'Organization settings updated successfully'
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to bulk update organization settings',
                 'error' => $e->getMessage()
             ], 500);
         }

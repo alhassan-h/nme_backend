@@ -224,5 +224,29 @@ Route::middleware(['auth:sanctum', 'can:admin'])->prefix('admin')->group(functio
     Route::put('mineral-categories/{mineral_category}', [MineralCategoryController::class, 'update'])->name('admin.mineral-categories.update');
     Route::put('mineral-categories/{mineral_category}/toggle-active', [MineralCategoryController::class, 'toggleActive'])->name('admin.mineral-categories.toggle-active');
     Route::delete('mineral-categories/{mineral_category}', [MineralCategoryController::class, 'destroy'])->name('admin.mineral-categories.delete');
+
+    // Organization Profile Settings
+    Route::get('organization-profile', [AdminController::class, 'getOrganizationProfile'])->name('admin.organization-profile.show');
+    Route::put('organization-profile', [AdminController::class, 'updateOrganizationProfile'])->name('admin.organization-profile.update');
+    Route::post('organization-profile', [AdminController::class, 'createOrganizationProfileEntry'])->name('admin.organization-profile.create');
+    Route::put('organization-profile/{profile}', [AdminController::class, 'updateOrganizationProfileEntry'])->name('admin.organization-profile.update-entry');
+    Route::delete('organization-profile/{profile}', [AdminController::class, 'deleteOrganizationProfileEntry'])->name('admin.organization-profile.delete');
+
+    // Business Settings
+    Route::get('business-settings', [AdminController::class, 'getBusinessSettings'])->name('admin.business-settings.index');
+    Route::post('business-settings', [AdminController::class, 'createBusinessSetting'])->name('admin.business-settings.create');
+    Route::put('business-settings/{setting}', [AdminController::class, 'updateBusinessSetting'])->name('admin.business-settings.update');
+    Route::delete('business-settings/{setting}', [AdminController::class, 'deleteBusinessSetting'])->name('admin.business-settings.delete');
+    Route::get('business-settings/{key}/value', [AdminController::class, 'getBusinessSettingValue'])->name('admin.business-settings.value');
+    Route::post('business-settings/bulk-update', [AdminController::class, 'bulkUpdateBusinessSettings'])->name('admin.business-settings.bulk-update');
+
+    // Organization Settings
+    Route::get('organization-settings', [AdminController::class, 'getOrganizationSettings'])->name('admin.organization-settings.index');
+    Route::post('organization-settings', [AdminController::class, 'createOrganizationSetting'])->name('admin.organization-settings.create');
+    Route::put('organization-settings/{setting}', [AdminController::class, 'updateOrganizationSetting'])->name('admin.organization-settings.update');
+    Route::delete('organization-settings/{setting}', [AdminController::class, 'deleteOrganizationSetting'])->name('admin.organization-settings.delete');
+    Route::get('organization-settings/{key}/value', [AdminController::class, 'getOrganizationSettingValue'])->name('admin.organization-settings.value');
+    Route::get('organization-settings/type/{type}', [AdminController::class, 'getOrganizationSettingsByType'])->name('admin.organization-settings.by-type');
+    Route::post('organization-settings/bulk-update', [AdminController::class, 'bulkUpdateOrganizationSettings'])->name('admin.organization-settings.bulk-update');
 });
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum')->name('auth.logout');

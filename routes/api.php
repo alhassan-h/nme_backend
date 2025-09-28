@@ -46,6 +46,9 @@ Route::get('gallery/status', [OrganizationSettingController::class, 'getGalleryS
 Route::get('market-insights/status', [OrganizationSettingController::class, 'getMarketInsightsStatus'])->name('market-insights.status');
 Route::get('community/status', [OrganizationSettingController::class, 'getCommunityStatus'])->name('community.status');
 
+// Public organization profile
+Route::get('organization-profile', [AdminController::class, 'getPublicOrganizationProfile'])->name('organization-profile.public');
+
 // Mineral Categories
 Route::get('mineral-categories', [MineralCategoryController::class, 'index'])->name('mineral-categories.index');
 

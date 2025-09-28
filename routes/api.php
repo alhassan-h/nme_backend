@@ -37,8 +37,14 @@ Route::post('newsletter/subscribe', [NewsletterController::class, 'subscribe'])-
 Route::get('newsletter/status', [NewsletterController::class, 'checkStatus'])->name('newsletter.status');
 Route::post('newsletter/unsubscribe', [NewsletterController::class, 'unsubscribe'])->name('newsletter.unsubscribe');
 
-// Public maintenance status check
+// Public organization setting status checks
 Route::get('maintenance/status', [OrganizationSettingController::class, 'getMaintenanceStatus'])->name('maintenance.status');
+Route::get('registration/status', [OrganizationSettingController::class, 'getRegistrationStatus'])->name('registration.status');
+Route::get('marketplace/status', [OrganizationSettingController::class, 'getMarketplaceStatus'])->name('marketplace.status');
+Route::get('newsletter/status', [OrganizationSettingController::class, 'getNewsletterStatus'])->name('newsletter.status');
+Route::get('gallery/status', [OrganizationSettingController::class, 'getGalleryStatus'])->name('gallery.status');
+Route::get('market-insights/status', [OrganizationSettingController::class, 'getMarketInsightsStatus'])->name('market-insights.status');
+Route::get('community/status', [OrganizationSettingController::class, 'getCommunityStatus'])->name('community.status');
 
 // Mineral Categories
 Route::get('mineral-categories', [MineralCategoryController::class, 'index'])->name('mineral-categories.index');
@@ -77,6 +83,7 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware(['auth:sanctum', 'throttle:60,1'])->prefix('user')->group(function () {
     Route::get('products', [UserController::class, 'products'])->name('user.products');
     Route::get('favorites', [UserController::class, 'favorites'])->name('user.favorites');
+    Route::get('gallery', [UserController::class, 'gallery'])->name('user.gallery');
     Route::put('profile', [UserController::class, 'updateProfile'])->name('user.profile.update');
     Route::put('password', [UserController::class, 'changePassword'])->middleware('throttle:5,1')->name('user.password.change');
     Route::post('avatar', [UserController::class, 'uploadAvatar'])->name('user.avatar.upload');
@@ -99,6 +106,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('insights/{insight}', [MarketInsightController::class, 'update'])->middleware('can:admin')->name('insights.update');
     Route::delete('insights/{insight}', [MarketInsightController::class, 'destroy'])->middleware('can:admin')->name('insights.destroy');
     Route::post('insights/{id}/like', [MarketInsightController::class, 'toggleLike'])->name('insights.toggleLike');
+    Route::get('user/liked-insights', [MarketInsightController::class, 'getLikedInsights'])->name('insights.liked');
 });
 
 // Forum

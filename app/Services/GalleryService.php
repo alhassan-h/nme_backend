@@ -240,4 +240,38 @@ class GalleryService
         $image = GalleryImage::findOrFail($galleryImageId);
         return $image->likes()->where('user_id', $userId)->exists();
     }
+
+    public function getUserGallery(int $userId, int $perPage = 15, int $page = 1): LengthAwarePaginator
+    {
+        $query = GalleryImage::with('uploader', 'location')
+            ->withCount('likes')
+            ->where('user_id', $userId)
+            ->orderByDesc('created_at');
+
+        $paginated = $query->paginate($perPage, ['*'], 'page', $page);
+
+        // Transform the data to match frontend expectations
+        $paginated->getCollection()->transform(function ($image) {
+            return [
+                'id' => $image->id,
+                'file_path' => $image->file_path,
+                'category' => $image->category,
+                'location' => $image->location ? $image->location->name : null,
+                'location_id' => $image->location_id,
+                'description' => $image->description,
+                'views' => $image->views,
+                'likes_count' => $image->likes_count,
+                'status' => $image->status,
+                'uploader' => $image->uploader ? [
+                    'id' => $image->uploader->id,
+                    'name' => trim($image->uploader->first_name . ' ' . $image->uploader->last_name),
+                    'email' => $image->uploader->email,
+                ] : null,
+                'created_at' => $image->created_at,
+                'updated_at' => $image->updated_at,
+            ];
+        });
+
+        return $paginated;
+    }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Mail\SendEmailVerification;
 use App\Models\User;
 use App\Services\ProductService;
+use App\Services\GalleryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,11 +18,13 @@ use Illuminate\Validation\Rules\Password;
 class UserController extends Controller
 {
     protected ProductService $productService;
+    protected GalleryService $galleryService;
 
-    public function __construct(ProductService $productService)
+    public function __construct(ProductService $productService, GalleryService $galleryService)
     {
         $this->middleware('auth:sanctum');
         $this->productService = $productService;
+        $this->galleryService = $galleryService;
     }
 
     public function products(Request $request): JsonResponse
@@ -44,6 +47,17 @@ class UserController extends Controller
         $favorites = $this->productService->getUserFavoriteProducts($user->id, $perPage, $page);
 
         return response()->json($favorites);
+    }
+
+    public function gallery(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+        $perPage = $request->get('per_page', 15);
+        $page = $request->get('page', 1);
+
+        $gallery = $this->galleryService->getUserGallery($user->id, $perPage, $page);
+
+        return response()->json($gallery);
     }
 
     public function updateProfile(Request $request): JsonResponse

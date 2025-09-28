@@ -25,7 +25,7 @@ class MarketInsightController extends Controller
             'exclude' => $request->get('exclude'),
             'search' => $request->get('search'),
         ];
-        $perPage = (int) $request->get('per_page', 15);
+        $perPage = (int) $request->get('per_page', 10);
         $page = (int) $request->get('page', 1);
         $userId = auth()->check() ? auth()->id() : null;
 
@@ -34,6 +34,7 @@ class MarketInsightController extends Controller
         foreach ($paginated->items() as $insight) {
             $insight->likes_count = $insight->likes->count();
             $insight->is_liked = $userId && $insight->likes->contains('user_id', $userId);
+            $insight->author = $insight->getAuthorAttribute();
         }
 
         return response()->json($paginated);
@@ -52,6 +53,7 @@ class MarketInsightController extends Controller
         $insight->likes_count = $insight->likes->count();
         $insight->is_liked = $userId && $insight->likes->contains('user_id', $userId);
         $insight->related = $this->insightService->getRelated($id, 5);
+        $insight->category = $insight->category ? $insight->category->name : 'Uncategorized';
         $insight->author = $insight->getAuthorAttribute();
 
         return response()->json($insight);
@@ -88,5 +90,30 @@ class MarketInsightController extends Controller
         $result = $this->insightService->toggleLike($id, $user->id);
 
         return response()->json($result);
+    }
+
+    public function getLikedInsights(Request $request): JsonResponse
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $filters = [
+            'category' => $request->get('category'),
+            'search' => $request->get('search'),
+        ];
+        $perPage = (int) $request->get('per_page', 15);
+        $page = (int) $request->get('page', 1);
+
+        $paginated = $this->insightService->getLikedInsights($user->id, $filters, $perPage, $page);
+
+        foreach ($paginated->items() as $insight) {
+            $insight->likes_count = $insight->likes->count();
+            $insight->is_liked = true; // Since these are liked insights
+            $insight->author = $insight->getAuthorAttribute();
+        }
+
+        return response()->json($paginated);
     }
 }

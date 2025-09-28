@@ -131,6 +131,14 @@ class OrganizationProfileSeeder extends Seeder
                 'is_public' => true,
                 'sort_order' => 13,
             ],
+            [
+                'key' => 'default_currency',
+                'value' => 'NGN',
+                'type' => 'string',
+                'description' => 'Default currency for transactions',
+                'is_public' => false,
+                'sort_order' => 14,
+            ],
         ];
 
         foreach ($profileData as $data) {

@@ -71,11 +71,21 @@ class CheckMaintenanceMode
     }
 
     /**
-     * Check if the current request is for the maintenance status route
+     * Check if the current request is for status routes that should be accessible during maintenance
      */
     private function isMaintenanceStatusRoute(Request $request): bool
     {
         $routeName = $request->route()?->getName();
-        return $routeName === 'maintenance.status';
+        $allowedRoutes = [
+            'maintenance.status',
+            'registration.status',
+            'marketplace.status',
+            'newsletter.status',
+            'gallery.status',
+            'market-insights.status',
+            'community.status'
+        ];
+
+        return in_array($routeName, $allowedRoutes);
     }
 }

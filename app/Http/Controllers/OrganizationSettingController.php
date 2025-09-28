@@ -40,6 +40,132 @@ class OrganizationSettingController extends Controller
         }
     }
 
+    public function getRegistrationStatus(): JsonResponse
+    {
+        try {
+            $isEnabled = $this->settingService->isEnabled('registration_enabled');
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'enabled' => $isEnabled
+                ],
+                'message' => 'Registration status retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve registration status',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getMarketplaceStatus(): JsonResponse
+    {
+        try {
+            $isEnabled = $this->settingService->isEnabled('marketplace_enabled');
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'enabled' => $isEnabled
+                ],
+                'message' => 'Marketplace status retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve marketplace status',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getNewsletterStatus(): JsonResponse
+    {
+        try {
+            $isEnabled = $this->settingService->isEnabled('newsletter_enabled');
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'enabled' => $isEnabled
+                ],
+                'message' => 'Newsletter status retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve newsletter status',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getGalleryStatus(): JsonResponse
+    {
+        try {
+            $isEnabled = $this->settingService->isEnabled('gallery_enabled');
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'enabled' => $isEnabled
+                ],
+                'message' => 'Gallery status retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve gallery status',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getMarketInsightsStatus(): JsonResponse
+    {
+        try {
+            $isEnabled = $this->settingService->isEnabled('market_insights_enabled');
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'enabled' => $isEnabled
+                ],
+                'message' => 'Market insights status retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve market insights status',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getCommunityStatus(): JsonResponse
+    {
+        try {
+            $isEnabled = $this->settingService->isEnabled('community_forum_enabled');
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'enabled' => $isEnabled
+                ],
+                'message' => 'Community status retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve community status',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function getOrganizationSettings(): JsonResponse
     {
         \Log::info('Retrieving organization settings');

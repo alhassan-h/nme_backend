@@ -98,6 +98,32 @@ class MarketInsightService
         ];
     }
 
+    public function getLikedInsights(int $userId, array $filters = [], int $perPage = 15, int $page = 1): LengthAwarePaginator
+    {
+        $query = MarketInsight::with(['user', 'likes', 'category'])
+            ->whereHas('likes', function ($q) use ($userId) {
+                $q->where('user_id', $userId);
+            });
+
+        if (!empty($filters['category'])) {
+            // Filter by category name through relationship
+            $query->whereHas('category', function ($q) use ($filters) {
+                $q->where('name', $filters['category']);
+            });
+        }
+
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('content', 'like', "%{$search}%")
+                  ->orWhere('summary', 'like', "%{$search}%");
+            });
+        }
+
+        return $query->orderByDesc('created_at')->paginate($perPage, ['*'], 'page', $page);
+    }
+
     public function delete(MarketInsight $insight): void
     {
         $insight->delete();

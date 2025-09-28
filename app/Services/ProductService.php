@@ -6,6 +6,8 @@ use App\Events\ProductCreated;
 use App\Models\Product;
 use App\Models\User;
 use App\Models\MineralCategory;
+use App\Models\Location;
+use App\Models\Unit;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
@@ -23,7 +25,7 @@ class ProductService
         $page = isset($filters['page']) ? (int) $filters['page'] : 1;
         $perPage = isset($filters['per_page']) ? (int) $filters['per_page'] : 15;
 
-        $query = Product::with(['seller', 'mineralCategory'])
+        $query = Product::with(['seller', 'unit', 'location', 'mineralCategory'])
             ->where('status', Product::STATUS_ACTIVE);
 
         $query->filter($filters);
@@ -45,6 +47,8 @@ class ProductService
     {
         $user = auth()->user();
 
+        \Log::info('Creating product for user', ['user_id' => $user->id, 'data' => $data]);
+
         $imagePaths = [];
         if ($images) {
             foreach ($images as $image) {
@@ -62,13 +66,31 @@ class ProductService
             $mineralCategoryId = $data['mineral_category_id'];
         }
 
+        // Find location by name if location is provided
+        if (isset($data['location'])) {
+            $data['location'] = trim($data['location']);
+            $location = Location::where('name', $data['location'])->first();
+            $data['location_id'] = $location ? $location->id : null;
+        }else if (isset($data['location_id'])) {
+            $data['location_id'] = $data['location_id'];
+        }
+
+        // Find unit by name if unit is provided
+        if (isset($data['unit'])) {
+            $data['unit'] = trim($data['unit']);
+            $unit = Unit::where('name', $data['unit'])->first();
+            $data['unit_id'] = $unit ? $unit->id : null;
+        } else if (isset($data['unit_id'])) {
+            $data['unit_id'] = $data['unit_id'];
+        }
+
         $product = new Product();
         $product->title = $data['title'];
         $product->description = $data['description'];
         $product->price = $data['price'];
         $product->quantity = $data['quantity'];
-        $product->unit = $data['unit'];
-        $product->location = $data['location'];
+        $product->unit_id = $data['unit_id'];
+        $product->location_id = $data['location_id'];
         $product->seller_id = $user->id;
         $product->mineral_category_id = $mineralCategoryId;
         $product->images = $imagePaths;
@@ -197,5 +219,27 @@ class ProductService
         $duplicatedProduct->save();
 
         return $duplicatedProduct->load('seller');
+    }
+
+    /**
+     * Approve a pending product listing by changing its status to active
+     *
+     * @param int $productId
+     * @return Product
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
+     */
+    public function approveListing(int $productId): Product
+    {
+        $product = Product::findOrFail($productId);
+
+        // Only allow approval if the product is currently pending
+        if ($product->status !== Product::STATUS_PENDING) {
+            throw new \InvalidArgumentException('Only pending products can be approved');
+        }
+
+        $product->status = Product::STATUS_ACTIVE;
+        $product->save();
+
+        return $product->load('seller', 'mineralCategory');
     }
 }

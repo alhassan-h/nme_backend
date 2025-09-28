@@ -48,6 +48,11 @@ class ProductController extends Controller
 
         $product = $this->productService->createProduct($request->validated(), $request->file('images'));
 
+        // Auto-approve if setting is enabled
+        if ($this->settingService->isEnabled('auto_approve_listings')) {
+            $product = $this->productService->approveListing($product->id);
+        }
+
         return response()->json($product, Response::HTTP_CREATED);
     }
 

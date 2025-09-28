@@ -52,14 +52,7 @@ class OrganizationSettingSeeder extends Seeder
                 'description' => 'Enable system email notifications',
                 'is_sensitive' => false,
             ],
-            [
-                'key' => 'newsletter_enabled',
-                'value' => 'true',
-                'type' => 'email',
-                'description' => 'Enable newsletter subscription system',
-                'is_sensitive' => false,
-            ],
-
+            
             // Platform Settings
             [
                 'key' => 'maintenance_mode',
@@ -76,6 +69,20 @@ class OrganizationSettingSeeder extends Seeder
                 'is_sensitive' => false,
             ],
             [
+                'key' => 'newsletter_enabled',
+                'value' => 'true',
+                'type' => 'platform',
+                'description' => 'Enable newsletter subscription system',
+                'is_sensitive' => false,
+            ],
+            [
+                'key' => 'market_insights_enabled',
+                'value' => 'true',
+                'type' => 'platform',
+                'description' => 'Enable market insights and analytics',
+                'is_sensitive' => false,
+            ],
+            [
                 'key' => 'marketplace_enabled',
                 'value' => 'true',
                 'type' => 'platform',
@@ -83,17 +90,17 @@ class OrganizationSettingSeeder extends Seeder
                 'is_sensitive' => false,
             ],
             [
+                'key' => 'community_forum_enabled',
+                'value' => 'true',
+                'type' => 'platform',
+                'description' => 'Enable community forums',
+                'is_sensitive' => false,
+            ],
+            [
                 'key' => 'gallery_enabled',
                 'value' => 'true',
                 'type' => 'platform',
                 'description' => 'Enable image gallery features',
-                'is_sensitive' => false,
-            ],
-            [
-                'key' => 'default_currency',
-                'value' => 'NGN',
-                'type' => 'platform',
-                'description' => 'Default currency for transactions',
                 'is_sensitive' => false,
             ],
 

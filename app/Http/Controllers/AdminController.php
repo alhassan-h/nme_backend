@@ -741,14 +741,14 @@ class AdminController extends Controller
         }
     }
 
-    public function approveProduct(Product $id): JsonResponse
+    public function approveProduct(Product $product): JsonResponse
     {
         try {
-            $product = $this->adminService->approveProduct($id);
+            $approvedProduct = app(\App\Services\ProductService::class)->approveListing($product->id);
 
             return response()->json([
                 'success' => true,
-                'data' => $product,
+                'data' => $approvedProduct,
                 'message' => 'Product approved successfully'
             ]);
         } catch (\Exception $e) {

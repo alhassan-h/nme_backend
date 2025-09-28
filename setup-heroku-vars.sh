@@ -30,7 +30,7 @@ heroku config:set CORS_ALLOWED_ORIGINS=https://nme-v1.vercel.app,https://naija-m
 # Mail settings
 heroku config:set MAIL_MAILER=mailgun --app $HEROKU_APP
 heroku config:set MAIL_MAILER_MAILGUN_DOMAIN=sandbox1db8a4971adb4c30bef44f365a1308eb.mailgun.org --app $HEROKU_APP
-heroku config:set MAIL_MAILER_MAILGUN_SECRET=SECRETE_HERE --app $HEROKU_APP
+heroku config:set MAIL_MAILER_MAILGUN_SECRET=028ff7fab4327c71def579684f126654-fbceb7cb-59a0df47 --app $HEROKU_APP
 heroku config:set MAIL_MAILER_MAILGUN_ENDPOINT=api.mailgun.net --app $HEROKU_APP
 heroku config:set MAIL_FROM_ADDRESS="alhassan88@gmail.com" --app $HEROKU_APP
 heroku config:set MAIL_FROM_NAME="${APP_NAME}" --app $HEROKU_APP

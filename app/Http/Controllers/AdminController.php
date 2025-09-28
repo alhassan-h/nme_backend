@@ -1819,6 +1819,25 @@ class AdminController extends Controller
         }
     }
 
+    public function getPublicOrganizationProfile(): JsonResponse
+    {
+        try {
+            $profileData = OrganizationProfile::getAllProfileData(true);
+
+            return response()->json([
+                'success' => true,
+                'data' => $profileData,
+                'message' => 'Organization profile retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve organization profile',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function updateOrganizationProfile(Request $request): JsonResponse
     {
         try {

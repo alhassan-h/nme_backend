@@ -15,18 +15,21 @@ return new class extends Migration
             $table->id();
             $table->string('title');
             $table->text('description');
-            $table->string('category');
             $table->decimal('price', 10, 2);
             $table->integer('quantity');
-            $table->string('unit');
-            $table->string('location');
             $table->json('images');
             $table->foreignId('seller_id')->constrained('users')->onDelete('cascade');
             $table->enum('status', ['active', 'pending', 'sold'])->default('pending');
             $table->integer('views')->default(0);
+            $table->foreignId('mineral_category_id')->nullable()->constrained('mineral_categories')->onDelete('set null');
+            $table->string('min_order')->nullable();
+            $table->json('specifications')->nullable();
+            $table->boolean('featured')->default(false);
+            $table->foreignId('location_id')->nullable()->constrained('locations')->onDelete('set null');
+            $table->foreignId('unit_id')->nullable()->constrained('units')->onDelete('set null');
             $table->timestamps();
 
-            $table->index(['category', 'location']);
+            $table->index('mineral_category_id');
             $table->index('status');
         });
     }

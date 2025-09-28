@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->string('name')->nullable();
             $table->timestamp('subscribed_at');
+            $table->timestamp('unsubscribed_at')->nullable();
             $table->enum('status', ['active', 'unsubscribed'])->default('active');
             $table->timestamps();
         });

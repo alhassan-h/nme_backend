@@ -15,13 +15,14 @@ return new class extends Migration
             $table->id();
             $table->string('file_path');
             $table->string('category');
-            $table->string('location');
+            $table->foreignId('location_id')->nullable()->constrained('locations')->onDelete('set null');
             $table->text('description')->nullable();
+            $table->enum('status', ['published', 'pending', 'unpublished', 'hidden'])->default('pending');
             $table->integer('views')->default(0);
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->timestamps();
 
-            $table->index(['category', 'location']);
+            $table->index(['category', 'location_id']);
         });
     }
 

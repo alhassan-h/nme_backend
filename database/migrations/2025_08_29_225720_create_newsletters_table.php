@@ -16,6 +16,9 @@ return new class extends Migration
             $table->string('subject');
             $table->text('content');
             $table->text('html_content');
+            $table->enum('status', ['draft', 'scheduled', 'sending', 'sent', 'failed'])->default('draft');
+            $table->timestamp('sent_at')->nullable();
+            $table->timestamp('scheduled_for')->nullable();
             $table->timestamp('created_at');
         });
     }

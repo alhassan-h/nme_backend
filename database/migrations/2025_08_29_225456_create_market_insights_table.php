@@ -15,11 +15,19 @@ return new class extends Migration
             $table->id();
             $table->string('title');
             $table->text('content');
-            $table->string('category');
             $table->boolean('featured')->default(false);
+            $table->string('price_trend')->nullable();
+            $table->string('market_volume')->nullable();
+            $table->string('investor_confidence')->nullable();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->json('tags')->nullable();
+            $table->enum('status', ['draft', 'published'])->default('draft');
+            $table->timestamp('published_at')->nullable();
+            $table->foreignId('category_id')->nullable()->constrained('market_insight_categories')->onDelete('set null');
             $table->timestamps();
 
-            $table->index(['category', 'featured']);
+            $table->index('category_id');
+            $table->index(['status', 'published_at']);
         });
     }
 

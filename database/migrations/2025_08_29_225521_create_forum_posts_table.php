@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('category');
             $table->json('tags');
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->unsignedInteger('views')->default(0);
             $table->timestamps();
 
             $table->index(['category', 'user_id']);

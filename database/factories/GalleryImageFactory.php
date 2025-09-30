@@ -15,10 +15,10 @@ class GalleryImageFactory extends Factory
         $categories = ['Mining', 'Products', 'Market', 'Events'];
 
         $imageUrls = [
-            'gallery/sample1.jpg',
-            'gallery/sample2.jpg',
-            'gallery/sample3.jpg',
-            'gallery/sample4.jpg',
+            'images/gallery/sample1.jpg',
+            'images/gallery/sample2.jpg',
+            'images/gallery/sample3.jpg',
+            'images/gallery/sample4.jpg',
         ];
 
         return [

@@ -19,7 +19,7 @@ return new class extends Migration
             $table->enum('status', ['draft', 'scheduled', 'sending', 'sent', 'failed'])->default('draft');
             $table->timestamp('sent_at')->nullable();
             $table->timestamp('scheduled_for')->nullable();
-            $table->timestamp('created_at');
+            $table->timestamps();
         });
     }
 

@@ -4,13 +4,16 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 
 class UserSeeder extends Seeder
 {
     public function run(): void
     {
         // Create admin user
-        User::firstOrCreate(
+        $admin = User::firstOrCreate(
             ['email' => 'admin@nme.com'],
             [
                 'first_name' => 'Admin',
@@ -21,8 +24,11 @@ class UserSeeder extends Seeder
                 'phone' => '+234 800 000 0000',
                 'location' => 'Abuja',
                 'verified' => true,
-            ]
-        );
+                ]
+            );
+
+        $admin->avatar = 'images/avatar/' . $admin->id . '.jpg';
+        $admin->save();
 
         // Create sample users for products
         $users = [
@@ -95,15 +101,45 @@ class UserSeeder extends Seeder
         ];
 
         foreach ($users as $userData) {
-            User::firstOrCreate(
+            $user = User::firstOrCreate(
                 ['email' => $userData['email']],
                 $userData
             );
+            $user->avatar = 'images/avatar/' . $user->id . '.jpg';
+            $user->save();
         }
 
         // Create additional random users using factory
         User::factory()->count(5)->create([
             'verified' => true,
         ]);
+    }
+
+    private function downloadAvatar($userId)
+    {
+        $apiUrl = 'https://randomuser.me/api/?inc=picture&noinfo';
+        $path = storage_path('app/public/avatar/' . $userId . '.jpg');
+        File::ensureDirectoryExists(dirname($path));
+        try {
+            $response = Http::get($apiUrl);
+            if ($response->successful()) {
+                $data = $response->json();
+                if (isset($data['results'][0]['picture']['large'])) {
+                    $photoUrl = $data['results'][0]['picture']['large'];
+                    $photoResponse = Http::get($photoUrl);
+                    if ($photoResponse->successful()) {
+                        File::put($path, $photoResponse->body());
+                    } else {
+                        Log::error('Failed to download photo for user ' . $userId);
+                    }
+                } else {
+                    Log::error('Invalid API response for user ' . $userId);
+                }
+            } else {
+                Log::error('Failed to fetch random user data for user ' . $userId);
+            }
+        } catch (\Exception $e) {
+            Log::error('Exception downloading avatar for user ' . $userId . ': ' . $e->getMessage());
+        }
     }
 }

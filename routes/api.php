@@ -128,7 +128,7 @@ Route::middleware('auth:sanctum')->group(function () {
 // Gallery
 Route::get('gallery', [GalleryController::class, 'index'])->name('gallery.index');
 Route::get('gallery/{id}', [GalleryController::class, 'show'])->name('gallery.show');
-Route::get('storage/gallery/{filename}', [GalleryController::class, 'serveImage'])->name('gallery.serve');
+Route::get('storage/images/gallery/{filename}', [GalleryController::class, 'serveImage'])->name('gallery.serve');
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('gallery', [GalleryController::class, 'store'])->name('gallery.store');
     Route::post('gallery/{id}/like', [GalleryController::class, 'toggleLike'])->name('gallery.toggleLike');

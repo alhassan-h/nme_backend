@@ -97,7 +97,7 @@ class GalleryService
 
     public function uploadImage(UploadedFile $file, array $metadata, User $uploader): GalleryImage
     {
-        $filePath = $file->store('gallery', 'public');
+        $filePath = $file->store('images/gallery', 'public');
 
         $galleryImage = new GalleryImage();
         $galleryImage->file_path = $filePath;
@@ -124,12 +124,29 @@ class GalleryService
         $image->incrementView();
     }
 
-    public function updateImage(int $id, array $data): GalleryImage
+    public function updateImage(int $id, array $data, ?UploadedFile $newImage = null, ?User $uploader = null): GalleryImage
     {
         $image = GalleryImage::findOrFail($id);
 
         $fillableFields = ['category', 'location_id', 'description'];
         $updateData = array_intersect_key($data, array_flip($fillableFields));
+
+        // Handle image replacement
+        if ($newImage) {
+            // Delete old file
+            if ($image->file_path && Storage::disk('public')->exists($image->file_path)) {
+                Storage::disk('public')->delete($image->file_path);
+            }
+
+            // Store new file
+            $filePath = $newImage->store('images/gallery', 'public');
+            $updateData['file_path'] = $filePath;
+
+            // Update uploader if provided
+            if ($uploader) {
+                $updateData['user_id'] = $uploader->id;
+            }
+        }
 
         $image->update($updateData);
 

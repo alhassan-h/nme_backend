@@ -29,7 +29,7 @@ class GallerySeeder extends Seeder
         // Sample gallery images data with explicit data creation
         $galleryImages = [
             [
-                'file_path' => 'gallery/placeholder-ke6hd.png',
+                'file_path' => 'images/gallery/placeholder-ke6hd.png',
                 'category' => 'Gold',
                 'location_id' => $locations['Zamfara State'],
                 'description' => 'Gold Nuggets from Zamfara',
@@ -39,7 +39,7 @@ class GallerySeeder extends Seeder
                 'updated_at' => now()->subDays(5),
             ],
             [
-                'file_path' => 'gallery/placeholder-ke6hd.png',
+                'file_path' => 'images/gallery/placeholder-ke6hd.png',
                 'category' => 'Limestone',
                 'location_id' => $locations['Ogun State'],
                 'description' => 'Limestone Quarry Operations',
@@ -49,7 +49,7 @@ class GallerySeeder extends Seeder
                 'updated_at' => now()->subDays(6),
             ],
             [
-                'file_path' => 'gallery/tin-ore-samples.png',
+                'file_path' => 'images/gallery/tin-ore-samples.png',
                 'category' => 'Tin',
                 'location_id' => $locations['Plateau State'],
                 'description' => 'Tin Ore Samples',
@@ -59,7 +59,7 @@ class GallerySeeder extends Seeder
                 'updated_at' => now()->subDays(7),
             ],
             [
-                'file_path' => 'gallery/placeholder-ke6hd.png',
+                'file_path' => 'images/gallery/placeholder-ke6hd.png',
                 'category' => 'Coal',
                 'location_id' => $locations['Enugu State'],
                 'description' => 'Coal Mining Site',
@@ -69,7 +69,7 @@ class GallerySeeder extends Seeder
                 'updated_at' => now()->subDays(8),
             ],
             [
-                'file_path' => 'gallery/iron-ore-deposits.png',
+                'file_path' => 'images/gallery/iron-ore-deposits.png',
                 'category' => 'Iron Ore',
                 'location_id' => $locations['Kogi State'],
                 'description' => 'Iron Ore Deposits',
@@ -79,7 +79,7 @@ class GallerySeeder extends Seeder
                 'updated_at' => now()->subDays(9),
             ],
             [
-                'file_path' => 'gallery/barite-crystal.png',
+                'file_path' => 'images/gallery/barite-crystal.png',
                 'category' => 'Barite',
                 'location_id' => $locations['Cross River State'],
                 'description' => 'Barite Crystal Formation',
@@ -89,7 +89,7 @@ class GallerySeeder extends Seeder
                 'updated_at' => now()->subDays(10),
             ],
             [
-                'file_path' => 'gallery/placeholder-ke6hd.png',
+                'file_path' => 'images/gallery/placeholder-ke6hd.png',
                 'category' => 'Mining',
                 'location_id' => $locations['Kaduna State'],
                 'description' => 'Mining Operations in Kaduna',
@@ -99,7 +99,7 @@ class GallerySeeder extends Seeder
                 'updated_at' => now()->subDays(11),
             ],
             [
-                'file_path' => 'gallery/placeholder-ke6hd.png',
+                'file_path' => 'images/gallery/placeholder-ke6hd.png',
                 'category' => 'Products',
                 'location_id' => $locations['Lagos State'],
                 'description' => 'Mineral Products Display',
@@ -109,7 +109,7 @@ class GallerySeeder extends Seeder
                 'updated_at' => now()->subDays(12),
             ],
             [
-                'file_path' => 'gallery/placeholder-ke6hd.png',
+                'file_path' => 'images/gallery/placeholder-ke6hd.png',
                 'category' => 'Market',
                 'location_id' => $locations['FCT Abuja'],
                 'description' => 'Mineral Market Activities',
@@ -119,7 +119,7 @@ class GallerySeeder extends Seeder
                 'updated_at' => now()->subDays(13),
             ],
             [
-                'file_path' => 'gallery/placeholder-ke6hd.png',
+                'file_path' => 'images/gallery/placeholder-ke6hd.png',
                 'category' => 'Events',
                 'location_id' => $locations['Rivers State'],
                 'description' => 'Mining Industry Conference',

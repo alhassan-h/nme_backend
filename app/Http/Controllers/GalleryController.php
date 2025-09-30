@@ -100,12 +100,16 @@ class GalleryController extends Controller
     {
         $request->validate([
             'category' => 'nullable|string|max:255',
-            'location' => 'nullable|string|max:255',
+            'location_id' => 'nullable|numeric|max:255',
             'description' => 'nullable|string',
+            'image' => 'nullable|image|max:' . ($this->settingService->getMaxFileSize() * 1024),
         ]);
 
-        $data = $request->only(['category', 'location', 'description']);
-        $image = $this->galleryService->updateImage($id, $data);
+        $data = $request->only(['category', 'location_id', 'description']);
+        $newImage = $request->file('image');
+        $uploader = Auth::user();
+
+        $image = $this->galleryService->updateImage($id, $data, $newImage, $uploader);
 
         return response()->json($image);
     }
@@ -192,7 +196,7 @@ class GalleryController extends Controller
 
     public function serveImage(string $filename)
     {
-        $path = storage_path('app/public/gallery/' . $filename);
+        $path = storage_path('app/public/images/gallery/' . $filename);
 
         if (!file_exists($path)) {
             abort(404);

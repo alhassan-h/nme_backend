@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\File;
 
 class ProductSeeder extends Seeder
 {
@@ -43,12 +44,12 @@ class ProductSeeder extends Seeder
                 'mineral_category_id' => $categories['Gold'] ?? null,
                 'price' => 2850000,
                 'quantity' => 2,
-                'unit_id' => $units['kg'],
-                'location_id' => $locations['Kaduna State'],
+                'unit_id' => $units['kg'] ?? null,
+                'location_id' => $locations['Kaduna State'] ?? null,
                 'seller_id' => $johnAdebayo->id,
                 'status' => Product::STATUS_ACTIVE,
                 'views' => 234,
-                'images' => ['/products/gold-nuggets-1.jpg', '/products/gold-nuggets-2.jpg'],
+                'slug' => 'gold-nuggets',
                 'created_at' => now()->subDays(5),
                 'updated_at' => now()->subDays(5),
             ],
@@ -63,7 +64,7 @@ class ProductSeeder extends Seeder
                 'seller_id' => $sarahOkafor->id,
                 'status' => Product::STATUS_ACTIVE,
                 'views' => 189,
-                'images' => ['/products/limestone-blocks-1.jpg', '/products/limestone-blocks-2.jpg'],
+                'slug' => 'limestone-blocks',
                 'created_at' => now()->subDays(6),
                 'updated_at' => now()->subDays(6),
             ],
@@ -78,7 +79,7 @@ class ProductSeeder extends Seeder
                 'seller_id' => $michaelAdamu->id,
                 'status' => Product::STATUS_PENDING,
                 'views' => 0,
-                'images' => ['/products/tin-ore-1.jpg', '/products/tin-ore-2.jpg'],
+                'slug' => 'tin-ore',
                 'created_at' => now()->subDays(7),
                 'updated_at' => now()->subDays(7),
             ],
@@ -93,7 +94,7 @@ class ProductSeeder extends Seeder
                 'seller_id' => $emekaNwachukwu->id,
                 'status' => Product::STATUS_SOLD,
                 'views' => 98,
-                'images' => ['/products/coal-industrial-1.jpg', '/products/coal-industrial-2.jpg'],
+                'slug' => 'coal-industrial',
                 'created_at' => now()->subDays(8),
                 'updated_at' => now()->subDays(8),
             ],
@@ -108,7 +109,7 @@ class ProductSeeder extends Seeder
                 'seller_id' => $aminaYusuf->id,
                 'status' => Product::STATUS_ACTIVE,
                 'views' => 156,
-                'images' => ['/products/iron-ore-1.jpg', '/products/iron-ore-2.jpg'],
+                'slug' => 'iron-ore',
                 'created_at' => now()->subDays(9),
                 'updated_at' => now()->subDays(9),
             ],
@@ -123,7 +124,7 @@ class ProductSeeder extends Seeder
                 'seller_id' => $johnAdebayo->id,
                 'status' => Product::STATUS_ACTIVE,
                 'views' => 87,
-                'images' => ['/products/copper-ore-1.jpg', '/products/copper-ore-2.jpg'],
+                'slug' => 'copper-ore',
                 'created_at' => now()->subDays(10),
                 'updated_at' => now()->subDays(10),
             ],
@@ -137,7 +138,7 @@ class ProductSeeder extends Seeder
                 'seller_id' => $sarahOkafor->id,
                 'status' => Product::STATUS_ACTIVE,
                 'views' => 123,
-                'images' => ['/products/zinc-concentrate-1.jpg', '/products/zinc-concentrate-2.jpg'],
+                'slug' => 'zinc-concentrate',
                 'created_at' => now()->subDays(11),
                 'updated_at' => now()->subDays(11),
             ],
@@ -151,7 +152,7 @@ class ProductSeeder extends Seeder
                 'seller_id' => $michaelAdamu->id,
                 'status' => Product::STATUS_ACTIVE,
                 'views' => 67,
-                'images' => ['/products/lead-ore-1.jpg', '/products/lead-ore-2.jpg'],
+                'slug' => 'lead-ore',
                 'created_at' => now()->subDays(12),
                 'updated_at' => now()->subDays(12),
             ],
@@ -165,7 +166,7 @@ class ProductSeeder extends Seeder
                 'seller_id' => $fatimaBello->id,
                 'status' => Product::STATUS_ACTIVE,
                 'views' => 145,
-                'images' => ['/products/bauxite-1.jpg', '/products/bauxite-2.jpg'],
+                'slug' => 'bauxite',
                 'created_at' => now()->subDays(13),
                 'updated_at' => now()->subDays(13),
             ],
@@ -179,13 +180,25 @@ class ProductSeeder extends Seeder
                 'seller_id' => $emekaNwachukwu->id,
                 'status' => Product::STATUS_PENDING,
                 'views' => 23,
-                'images' => ['/products/uranium-ore-1.jpg', '/products/uranium-ore-2.jpg'],
+                'slug' => 'uranium-ore',
                 'created_at' => now()->subDays(14),
                 'updated_at' => now()->subDays(14),
             ],
         ];
 
         foreach ($products as $productData) {
+            $images = [];
+            if (isset($productData['slug'])) {
+                $imageFiles = File::files(base_path('data/images/products'));
+                foreach ($imageFiles as $file) {
+                    $filename = $file->getFilename();
+                    if (str_starts_with($filename, $productData['slug'] . '-')) {
+                        $images[] = 'images/products/' . $filename;
+                    }
+                }
+            }
+            $productData['images'] = $images;
+            unset($productData['slug']);  // Remove slug before creating
             Product::create($productData);
         }
     }

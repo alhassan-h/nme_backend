@@ -24,6 +24,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
 
 class AdminController extends Controller
@@ -1544,6 +1545,7 @@ class AdminController extends Controller
                 'views' => $product->views ?? 0,
                 'inquiries' => 0, // TODO: To add inquiries count when available
                 'isVerified' => $product->seller?->status === 'active' && $product->seller?->email_verified_at !== null,
+                'images' => $product->images ?? [],
                 'mineral_category' => $product->mineralCategory ? ['name' => $product->mineralCategory->name] : null,
                 'mineral_category_id' => $product->mineral_category_id,
                 'unit_id' => $product->unit_id,
@@ -1566,6 +1568,7 @@ class AdminController extends Controller
 
     public function updateListing(Request $request, Product $product): JsonResponse
     {
+        \Log::info('Update Listing Request Data:', $request->all());
         try {
             $validated = $request->validate([
                 'title' => 'required|string|max:255',
@@ -1576,9 +1579,44 @@ class AdminController extends Controller
                 'location_id' => 'nullable|integer|exists:locations,id',
                 'mineral_category_id' => 'nullable|integer|exists:mineral_categories,id',
                 'status' => 'required|in:active,pending,suspended,expired,sold',
+                'existing_images' => 'nullable|array',
+                'existing_images.*' => 'nullable|string',
+                'images' => 'nullable|array',
+                'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             ]);
 
-            $product->update($validated);
+            // Handle image management
+            $currentImages = $product->images ?? [];
+            $existingImagesToKeep = $request->input('existing_images', []);
+            $newImages = $request->file('images') ?? [];
+
+            // Find images to delete (those in current but not in existing_images_to_keep)
+            $imagesToDelete = array_diff($currentImages, $existingImagesToKeep);
+
+            // Delete removed images from storage
+            foreach ($imagesToDelete as $imageToDelete) {
+                if (Storage::disk('public')->exists($imageToDelete)) {
+                    Storage::disk('public')->delete($imageToDelete);
+                }
+            }
+
+            // Upload new images
+            $newImagePaths = [];
+            foreach ($newImages as $image) {
+                $path = $image->store('images/products', 'public');
+                $newImagePaths[] = $path;
+            }
+
+            // Combine kept existing images with new images
+            $finalImages = array_merge($existingImagesToKeep, $newImagePaths);
+            $validated['images'] = $finalImages;
+
+            // Remove validation fields that aren't part of the model
+            unset($validated['existing_images']);
+
+            // Update the product directly (not using ProductService to avoid image conflicts)
+            $product->fill($validated);
+            $product->save();
 
             return response()->json([
                 'success' => true,

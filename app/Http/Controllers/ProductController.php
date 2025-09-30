@@ -58,9 +58,29 @@ class ProductController extends Controller
 
     public function update(ProductUpdateRequest $request, Product $product): JsonResponse
     {
-        $updatedProduct = $this->productService->updateProduct($product, $request->validated(), $request->file('images'));
+        try {
+            $validated = $request->validated();
 
-        return response()->json($updatedProduct);
+            $this->productService->updateProduct($product, $validated, $request->file('images'));
+
+            return response()->json([
+                'success' => true,
+                'data' => $product->load(['seller', 'mineralCategory', 'location', 'unit']),
+                'message' => 'Listing updated successfully'
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update listing',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function destroy(Product $product): JsonResponse

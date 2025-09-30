@@ -16,16 +16,17 @@ class ProductUpdateRequest extends FormRequest
     public function rules(): array
     {
         $rules = [
-            'title' => ['sometimes', 'string', 'max:255'],
-            'description' => ['sometimes', 'string'],
-            'category' => ['sometimes', 'string', 'max:100'],
-            'mineral_category_id' => ['sometimes', 'integer', 'exists:mineral_categories,id'],
-            'price' => ['sometimes', 'numeric', 'min:0'],
-            'quantity' => ['sometimes', 'integer', 'min:1'],
-            'unit' => ['sometimes', 'string', 'max:20'],
-            'location' => ['sometimes', 'string', 'max:100'],
-            'images' => ['sometimes', 'array', 'max:5'],
-            'images.*' => ['file', 'image', 'max:5120'],
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'price' => 'required|numeric|min:0',
+            'quantity' => 'required|integer|min:1',
+            'unit_id' => 'nullable|integer|exists:units,id',
+            'location_id' => 'nullable|integer|exists:locations,id',
+            'mineral_category_id' => 'nullable|integer|exists:mineral_categories,id',
+            'existing_images' => 'nullable|array',
+            'existing_images.*' => 'nullable|string',
+            'images' => 'nullable|array',
+            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ];
 
         // Add status validation with role-based permissions
@@ -59,9 +60,9 @@ class ProductUpdateRequest extends FormRequest
                     $validator->errors()->add('status', 'Only sellers can mark products as sold.');
                 }
 
-                // Sellers can only change status to sold (or back to pending/active if admin allows)
-                if ($user->isSeller() && !in_array($newStatus, [Product::STATUS_SOLD, Product::STATUS_PENDING])) {
-                    $validator->errors()->add('status', 'Sellers can only mark products as sold or pending.');
+                // Sellers can only change status to sold
+                if ($user->isSeller() || $user->isBoth() && !in_array($newStatus, [Product::STATUS_SOLD])) {
+                    $validator->errors()->add('status', 'Sellers can only mark products as sold.');
                 }
             }
         });

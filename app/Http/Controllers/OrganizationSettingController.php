@@ -168,10 +168,8 @@ class OrganizationSettingController extends Controller
 
     public function getOrganizationSettings(): JsonResponse
     {
-        \Log::info('Retrieving organization settings');
         try {
             $settings = $this->settingService->getAllSettings();
-        \Log::info('Retrieved settings', ['settings' => $settings]);
             return response()->json([
                 'success' => true,
                 'data' => $settings,

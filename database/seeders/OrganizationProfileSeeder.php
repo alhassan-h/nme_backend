@@ -149,7 +149,7 @@ class OrganizationProfileSeeder extends Seeder
             ],
             [
                 'key' => 'homepage_footer_powered_by_logo',
-                'value' => '/admin/stotan-logo.jpg',
+                'value' => 'images/admin/stotan-logo.jpg',
                 'type' => 'string',
                 'description' => 'URL or path to the logo image for the powering entity',
                 'is_public' => true,
@@ -173,7 +173,7 @@ class OrganizationProfileSeeder extends Seeder
             ],
             [
                 'key' => 'homepage_footer_developed_by_logo',
-                'value' => '/admin/devstudio-logo.png',
+                'value' => 'images/admin/devstudio-logo.png',
                 'type' => 'string',
                 'description' => 'URL or path to the logo image for the developing entity',
                 'is_public' => true,

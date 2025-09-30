@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\MarketInsightRequest;
 use App\Http\Requests\Newsletter\CreateNewsletterRequest;
+use App\Http\Requests\Product\ProductUpdateRequest;
 use App\Mail\PasswordResetByAdmin;
 use App\Models\User;
 use App\Models\UserLoginHistory;
@@ -19,12 +20,14 @@ use App\Models\OrganizationSetting;
 use App\Services\AdminService;
 use App\Services\OrganizationProfileService;
 use App\Services\OrganizationSettingService;
+use App\Services\ProductService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 class AdminController extends Controller
@@ -35,10 +38,12 @@ class AdminController extends Controller
 
     public function __construct(
         AdminService $adminService,
+        ProductService $productService,
         OrganizationProfileService $organizationProfileService,
         OrganizationSettingService $organizationSettingService
     ) {
         $this->adminService = $adminService;
+        $this->productService = $productService;
         $this->organizationProfileService = $organizationProfileService;
         $this->organizationSettingService = $organizationSettingService;
     }
@@ -529,18 +534,24 @@ class AdminController extends Controller
     {
         try {
             $validated = $request->validate([
-                'first_name' => 'required|string|max:255',
-                'last_name' => 'required|string|max:255',
+                'firstName' => 'required|string|max:255',
+                'lastName' => 'required|string|max:255',
                 'email' => 'required|email|unique:users,email,' . $user->id,
                 'phone' => 'required|string|max:20',
-                'user_type' => 'required|in:buyer,seller,both,admin',
+                'userType' => 'required|in:buyer,seller,both,admin',
                 'company' => 'nullable|string|max:255',
                 'bio' => 'nullable|string|max:1000',
                 'website' => 'nullable|url|max:255',
                 'location' => 'nullable|string|max:255',
             ]);
 
-            $user->update($validated);
+            // Transdorm keys to match database columns
+            $transformed = [];
+            foreach ($validated as $key => $value) {
+                $transformed[Str::snake($key)] = $value;
+            }
+
+            $user->update($transformed);
 
             return response()->json([
                 'success' => true,
@@ -656,14 +667,14 @@ class AdminController extends Controller
             if ($request->hasFile('avatar')) {
                 $file = $request->file('avatar');
                 $filename = time() . '_' . $user->id . '.' . $file->getClientOriginalExtension();
-                $path = $file->storeAs('avatars', $filename, 'public');
+                $path = $file->storeAs('images/avatar', $filename, 'public');
 
                 // Delete old avatar if exists
-                if ($user->avatar && \Illuminate\Support\Facades\Storage::disk('public')->exists('avatars/' . $user->avatar)) {
-                    \Illuminate\Support\Facades\Storage::disk('public')->delete('avatars/' . $user->avatar);
+                if ($user->avatar && \Illuminate\Support\Facades\Storage::disk('public')->exists($user->avatar)) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($user->avatar);
                 }
 
-                $user->update(['avatar' => $filename]);
+                $user->update(['avatar' => "images/avatar/$filename"]);
 
                 return response()->json([
                     'success' => true,
@@ -1566,57 +1577,12 @@ class AdminController extends Controller
         }
     }
 
-    public function updateListing(Request $request, Product $product): JsonResponse
+    public function updateListing(ProductUpdateRequest $request, Product $product): JsonResponse
     {
-        \Log::info('Update Listing Request Data:', $request->all());
         try {
-            $validated = $request->validate([
-                'title' => 'required|string|max:255',
-                'description' => 'required|string',
-                'price' => 'required|numeric|min:0',
-                'quantity' => 'required|integer|min:1',
-                'unit_id' => 'nullable|integer|exists:units,id',
-                'location_id' => 'nullable|integer|exists:locations,id',
-                'mineral_category_id' => 'nullable|integer|exists:mineral_categories,id',
-                'status' => 'required|in:active,pending,suspended,expired,sold',
-                'existing_images' => 'nullable|array',
-                'existing_images.*' => 'nullable|string',
-                'images' => 'nullable|array',
-                'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            ]);
+            $validated = $request->validated();
 
-            // Handle image management
-            $currentImages = $product->images ?? [];
-            $existingImagesToKeep = $request->input('existing_images', []);
-            $newImages = $request->file('images') ?? [];
-
-            // Find images to delete (those in current but not in existing_images_to_keep)
-            $imagesToDelete = array_diff($currentImages, $existingImagesToKeep);
-
-            // Delete removed images from storage
-            foreach ($imagesToDelete as $imageToDelete) {
-                if (Storage::disk('public')->exists($imageToDelete)) {
-                    Storage::disk('public')->delete($imageToDelete);
-                }
-            }
-
-            // Upload new images
-            $newImagePaths = [];
-            foreach ($newImages as $image) {
-                $path = $image->store('images/products', 'public');
-                $newImagePaths[] = $path;
-            }
-
-            // Combine kept existing images with new images
-            $finalImages = array_merge($existingImagesToKeep, $newImagePaths);
-            $validated['images'] = $finalImages;
-
-            // Remove validation fields that aren't part of the model
-            unset($validated['existing_images']);
-
-            // Update the product directly (not using ProductService to avoid image conflicts)
-            $product->fill($validated);
-            $product->save();
+            $this->productService->updateProduct($product, $validated, $request->file('images'));
 
             return response()->json([
                 'success' => true,
@@ -2292,7 +2258,6 @@ class AdminController extends Controller
     {
         try {
             $value = $this->organizationSettingService->getSettingValue($key);
-            \Log::info("Retrieved organization setting value for key '{$key}': " . var_export($value, true));
             return response()->json([
                 'success' => true,
                 'data' => ['key' => $key, 'value' => $value],

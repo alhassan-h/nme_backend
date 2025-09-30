@@ -47,8 +47,6 @@ class ProductService
     {
         $user = auth()->user();
 
-        \Log::info('Creating product for user', ['user_id' => $user->id, 'data' => $data]);
-
         $imagePaths = [];
         if ($images) {
             foreach ($images as $image) {
@@ -110,62 +108,42 @@ class ProductService
      * @param Product $product
      * @param array $data
      * @param UploadedFile[]|null $images
-     * @return Product
+     * @return boolean
      */
-    public function updateProduct(Product $product, array $data, ?array $images): Product
+    public function updateProduct(Product $product, array $data, ?array $images): bool
     {
-        if (isset($data['title'])) {
-            $product->title = $data['title'];
-        }
-        if (isset($data['description'])) {
-            $product->description = $data['description'];
-        }
-        if (isset($data['mineral_category_id'])) {
-            $product->mineral_category_id = $data['mineral_category_id'];
-        }
-        // Handle legacy category field by converting to mineral_category_id
-        elseif (isset($data['category'])) {
-            $mineralCategory = MineralCategory::where('name', $data['category'])->first();
-            if ($mineralCategory) {
-                $product->mineral_category_id = $mineralCategory->id;
+        // Handle image management
+        $currentImages = $product->images ?? [];
+        $existingImagesToKeep = $data['existing_images'] ?? [];
+        $newImages = $images ?? [];
+
+        // Find images to delete (those in current but not in existing_images_to_keep)
+        $imagesToDelete = array_diff($currentImages, $existingImagesToKeep);
+
+        // Delete removed images from storage
+        foreach ($imagesToDelete as $imageToDelete) {
+            if (Storage::disk('public')->exists($imageToDelete)) {
+                Storage::disk('public')->delete($imageToDelete);
             }
         }
-        if (isset($data['price'])) {
-            $product->price = $data['price'];
-        }
-        if (isset($data['quantity'])) {
-            $product->quantity = $data['quantity'];
-        }
-        if (isset($data['unit'])) {
-            $product->unit = $data['unit'];
-        }
-        if (isset($data['location'])) {
-            $product->location = $data['location'];
-        }
-        if (isset($data['min_order'])) {
-            $product->min_order = $data['min_order'];
-        }
-        if (isset($data['specifications'])) {
-            $product->specifications = $data['specifications'];
-        }
-        if (isset($data['featured'])) {
-            $product->featured = $data['featured'];
-        }
-        if (isset($data['status'])) {
-            $product->status = $data['status'];
-        }
-        if ($images) {
-            $imagePaths = $product->images ?: [];
-            foreach ($images as $image) {
-                $path = $image->store('products', 'public');
-                $imagePaths[] = $path;
-            }
-            $product->images = $imagePaths;
+
+        // Upload new images
+        $newImagePaths = [];
+        foreach ($newImages as $image) {
+            $path = $image->store('images/products', 'public');
+            $newImagePaths[] = $path;
         }
 
-        $product->save();
+        // Combine kept existing images with new images
+        $finalImages = array_merge($existingImagesToKeep, $newImagePaths);
+        $data['images'] = $finalImages;
 
-        return $product->load('seller');
+        // Remove validation fields that aren't part of the model
+        unset($data['existing_images']);
+
+        // Update the product directly using fill and save
+        $product->fill($data);
+        return $product->save();
     }
 
     public function deleteProduct(Product $product): void

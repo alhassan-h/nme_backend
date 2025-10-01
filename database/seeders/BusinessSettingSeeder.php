@@ -199,6 +199,29 @@ class BusinessSettingSeeder extends Seeder
                 'description' => 'Firebase server key for push notifications',
                 'is_sensitive' => true,
             ],
+
+            // Cloudinary Configuration
+            [
+                'key' => 'cloudinary_cloud_name',
+                'value' => 'ddphvxeu1', // Current cloud name
+                'type' => 'string',
+                'description' => 'Cloudinary cloud name for image storage',
+                'is_sensitive' => false,
+            ],
+            [
+                'key' => 'cloudinary_api_key',
+                'value' => '733519261876488', // Current API key
+                'type' => 'encrypted',
+                'description' => 'Cloudinary API key',
+                'is_sensitive' => true,
+            ],
+            [
+                'key' => 'cloudinary_api_secret',
+                'value' => 'CT9K6xAOT4DR0_R_upGDJbWgFLw', // Current API secret
+                'type' => 'encrypted',
+                'description' => 'Cloudinary API secret',
+                'is_sensitive' => true,
+            ],
         ];
 
         foreach ($settings as $setting) {

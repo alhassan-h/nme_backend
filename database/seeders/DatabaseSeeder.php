@@ -28,7 +28,6 @@ class DatabaseSeeder extends Seeder
             OrganizationProfileSeeder::class,
             BusinessSettingSeeder::class,
             OrganizationSettingSeeder::class,
-            StaticFileSeeder::class,
         ]);
     }
 }

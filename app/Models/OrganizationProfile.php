@@ -37,6 +37,7 @@ class OrganizationProfile extends Model
                     'integer' => (int) $value,
                     'boolean' => (bool) $value,
                     'float' => (float) $value,
+                    'image' => $value, // Store image URL as string
                     default => $value,
                 };
             },
@@ -48,6 +49,7 @@ class OrganizationProfile extends Model
                 return match ($this->type) {
                     'json' => is_array($value) ? json_encode($value) : $value,
                     'boolean' => $value ? '1' : '0',
+                    'image' => (string) $value, // Store image URL as string
                     default => (string) $value,
                 };
             }

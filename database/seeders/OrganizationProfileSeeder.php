@@ -5,6 +5,8 @@ namespace Database\Seeders;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\OrganizationProfile;
+use App\Services\CloudinaryService;
+use Illuminate\Support\Facades\Log;
 
 class OrganizationProfileSeeder extends Seeder
 {
@@ -141,7 +143,7 @@ class OrganizationProfileSeeder extends Seeder
             ],
             [
                 'key' => 'homepage_footer_powered_by_name',
-                'value' => 'STOTAN LLP LTD',
+                'value' => 'STOTAN LLP LTD',
                 'type' => 'string',
                 'description' => 'Name of the entity powering the site',
                 'is_public' => true,
@@ -149,8 +151,8 @@ class OrganizationProfileSeeder extends Seeder
             ],
             [
                 'key' => 'homepage_footer_powered_by_logo',
-                'value' => 'images/admin/stotan-logo.jpg',
-                'type' => 'string',
+                'value' => 'images/organization/stotan-logo.jpg',
+                'type' => 'image',
                 'description' => 'URL or path to the logo image for the powering entity',
                 'is_public' => true,
                 'sort_order' => 16,
@@ -173,8 +175,8 @@ class OrganizationProfileSeeder extends Seeder
             ],
             [
                 'key' => 'homepage_footer_developed_by_logo',
-                'value' => 'images/admin/devstudio-logo.png',
-                'type' => 'string',
+                'value' => 'images/organization/devstudio-logo.png',
+                'type' => 'image',
                 'description' => 'URL or path to the logo image for the developing entity',
                 'is_public' => true,
                 'sort_order' => 19,
@@ -187,13 +189,56 @@ class OrganizationProfileSeeder extends Seeder
                 'is_public' => true,
                 'sort_order' => 20,
             ],
+            [
+                'key' => 'logo',
+                'value' => 'images/organization/logo.png',
+                'type' => 'image',
+                'description' => 'URL or path to the logo image for the organization',
+                'is_public' => true,
+                'sort_order' => 21,
+            ],
+            [
+                'key' => 'favicon',
+                'value' => 'images/organization/favicon.png',
+                'type' => 'image',
+                'description' => 'URL or path to the favicon image for the organization',
+                'is_public' => true,
+                'sort_order' => 22,
+            ],
         ];
 
         foreach ($profileData as $data) {
+            if ($data['type'] === 'image' && isset($data['value'])) {
+                $filename = basename($data['value']); // e.g., 'stotan-logo.jpg'
+                $uploadedUrl = $this->uploadOrganizationImage($filename);
+                if ($uploadedUrl) {
+                    $data['value'] = $uploadedUrl;
+                } else {
+                    Log::warning('Failed to upload organization image: ' . $filename);
+                }
+            }
             OrganizationProfile::updateOrCreate(
                 ['key' => $data['key']],
                 $data
             );
+        }
+    }
+
+    private function uploadOrganizationImage($filename)
+    {
+        $cloudinary = app(CloudinaryService::class);
+        try {
+            $imagePath = resource_path('defaults/images/organization/' . $filename);
+            if (file_exists($imagePath)) {
+                $result = $cloudinary->upload($imagePath, ['folder' => 'organization']);
+                return $result['secure_url'];
+            } else {
+                Log::warning('Organization image not found: ' . $imagePath);
+                return null;
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to upload organization image ' . $filename . ': ' . $e->getMessage());
+            return null;
         }
     }
 }

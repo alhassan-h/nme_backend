@@ -1849,11 +1849,18 @@ class AdminController extends Controller
                 'updates' => 'required|array',
                 'updates.*.key' => 'required|string|max:255',
                 'updates.*.value' => 'nullable',
-                'updates.*.type' => 'required|in:string,json,integer,boolean,float',
+                'updates.*.type' => 'required|in:string,json,integer,boolean,float,image',
                 'updates.*.description' => 'nullable|string|max:500',
                 'updates.*.is_public' => 'boolean',
                 'updates.*.sort_order' => 'integer',
             ]);
+
+            // Handle image uploads for bulk updates
+            foreach ($validated['updates'] as $index => $update) {
+                if ($update['type'] === 'image' && $request->hasFile("updates.{$index}.image")) {
+                    $validated['updates'][$index]['value'] = $this->uploadImageToCloudinary($request->file("updates.{$index}.image"));
+                }
+            }
 
             $results = $this->organizationProfileService->bulkUpdate($validated['updates']);
 
@@ -1883,11 +1890,16 @@ class AdminController extends Controller
             $validated = $request->validate([
                 'key' => 'required|string|max:255|unique:organization_profiles,key',
                 'value' => 'nullable',
-                'type' => 'required|in:string,json,integer,boolean,float',
+                'type' => 'required|in:string,json,integer,boolean,float,image',
                 'description' => 'nullable|string|max:500',
                 'is_public' => 'boolean',
                 'sort_order' => 'integer',
             ]);
+
+            // Handle image upload if type is image
+            if ($validated['type'] === 'image' && $request->hasFile('image')) {
+                $validated['value'] = $this->uploadImageToCloudinary($request->file('image'));
+            }
 
             $profile = $this->organizationProfileService->createProfile($validated);
 
@@ -1916,11 +1928,16 @@ class AdminController extends Controller
         try {
             $validated = $request->validate([
                 'value' => 'nullable',
-                'type' => 'required|in:string,json,integer,boolean,float',
+                'type' => 'required|in:string,json,integer,boolean,float,image',
                 'description' => 'nullable|string|max:500',
                 'is_public' => 'boolean',
                 'sort_order' => 'integer',
             ]);
+
+            // Handle image upload if type is image
+            if ($validated['type'] === 'image' && $request->hasFile('image')) {
+                $validated['value'] = $this->uploadImageToCloudinary($request->file('image'));
+            }
 
             $updatedProfile = $this->organizationProfileService->updateProfile($profile, $validated);
 
@@ -2357,6 +2374,33 @@ class AdminController extends Controller
                 'message' => 'Failed to retrieve maintenance status',
                 'error' => $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Upload image to Cloudinary with validation
+     */
+    private function uploadImageToCloudinary($file): string
+    {
+        // Validate file
+        $request = request();
+        $request->validate([
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:5120' // 5MB max
+        ]);
+
+        try {
+            $cloudinaryService = app(\App\Services\CloudinaryService::class);
+            $result = $cloudinaryService->upload($file->getRealPath(), [
+                'folder' => 'organization-profile',
+                'public_id' => 'org_profile_' . time() . '_' . uniqid(),
+                'transformation' => [
+                    ['width' => 1200, 'height' => 1200, 'crop' => 'limit']
+                ]
+            ]);
+
+            return $result['secure_url'];
+        } catch (\Exception $e) {
+            throw new \Exception('Failed to upload image: ' . $e->getMessage());
         }
     }
 }

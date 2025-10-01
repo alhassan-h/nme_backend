@@ -3,9 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use App\Services\CloudinaryService;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 
 class UserSeeder extends Seeder
@@ -26,8 +25,7 @@ class UserSeeder extends Seeder
                 'verified' => true,
                 ]
             );
-
-        $admin->avatar = 'images/avatar/' . $admin->id . '.jpg';
+        $admin->avatar = $this->uploadUserAvatar($admin->id);
         $admin->save();
 
         // Create sample users for products
@@ -105,41 +103,38 @@ class UserSeeder extends Seeder
                 ['email' => $userData['email']],
                 $userData
             );
-            $user->avatar = 'images/avatar/' . $user->id . '.jpg';
+            $user->avatar = $this->uploadUserAvatar($user->id);
             $user->save();
         }
 
         // Create additional random users using factory
         User::factory()->count(5)->create([
             'verified' => true,
-        ]);
+        ])->each(function ($user) {
+            $user->avatar = $this->uploadUserAvatar($user->id);
+            $user->save();
+        });
     }
 
-    private function downloadAvatar($userId)
+    private function uploadUserAvatar($userId)
     {
-        $apiUrl = 'https://randomuser.me/api/?inc=picture&noinfo';
-        $path = storage_path('app/public/avatar/' . $userId . '.jpg');
-        File::ensureDirectoryExists(dirname($path));
+        $cloudinary = app(CloudinaryService::class);
         try {
-            $response = Http::get($apiUrl);
-            if ($response->successful()) {
-                $data = $response->json();
-                if (isset($data['results'][0]['picture']['large'])) {
-                    $photoUrl = $data['results'][0]['picture']['large'];
-                    $photoResponse = Http::get($photoUrl);
-                    if ($photoResponse->successful()) {
-                        File::put($path, $photoResponse->body());
-                    } else {
-                        Log::error('Failed to download photo for user ' . $userId);
-                    }
-                } else {
-                    Log::error('Invalid API response for user ' . $userId);
-                }
+            // Try user-specific avatar, fallback to 1.jpg
+            $avatarPath = resource_path('defaults/images/avatar/' . $userId . '.jpg');
+            if (!file_exists($avatarPath)) {
+                $avatarPath = resource_path('defaults/images/avatar/1.jpg');
+            }
+            if (file_exists($avatarPath)) {
+                $result = $cloudinary->upload($avatarPath, ['folder' => 'avatars']);
+                return $result['secure_url'];
             } else {
-                Log::error('Failed to fetch random user data for user ' . $userId);
+                Log::warning('Default avatar image not found');
+                return null;
             }
         } catch (\Exception $e) {
-            Log::error('Exception downloading avatar for user ' . $userId . ': ' . $e->getMessage());
+            Log::error('Failed to upload avatar for user ' . $userId . ': ' . $e->getMessage());
+            return null;
         }
     }
 }

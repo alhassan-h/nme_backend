@@ -4,8 +4,9 @@ namespace Database\Seeders;
 
 use App\Models\Product;
 use App\Models\User;
+use App\Services\CloudinaryService;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 
 class ProductSeeder extends Seeder
 {
@@ -189,17 +190,37 @@ class ProductSeeder extends Seeder
         foreach ($products as $productData) {
             $images = [];
             if (isset($productData['slug'])) {
-                $imageFiles = File::files(base_path('data/images/products'));
-                foreach ($imageFiles as $file) {
-                    $filename = $file->getFilename();
-                    if (str_starts_with($filename, $productData['slug'] . '-')) {
-                        $images[] = 'images/products/' . $filename;
+                $slug = $productData['slug'];
+                // Find matching image files
+                $imageFiles = glob(resource_path('defaults/images/products/' . $slug . '-*.jpg'));
+                foreach ($imageFiles as $imagePath) {
+                    $url = $this->uploadProductImage(basename($imagePath));
+                    if ($url) {
+                        $images[] = $url;
                     }
                 }
             }
             $productData['images'] = $images;
             unset($productData['slug']);  // Remove slug before creating
             Product::create($productData);
+        }
+    }
+
+    private function uploadProductImage($filename)
+    {
+        $cloudinary = app(CloudinaryService::class);
+        try {
+            $imagePath = resource_path('defaults/images/products/' . $filename);
+            if (file_exists($imagePath)) {
+                $result = $cloudinary->upload($imagePath, ['folder' => 'products']);
+                return $result['secure_url'];
+            } else {
+                Log::warning('Product image not found: ' . $imagePath);
+                return null;
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to upload product image ' . $filename . ': ' . $e->getMessage());
+            return null;
         }
     }
 }

@@ -6,12 +6,13 @@ use App\Mail\SendEmailVerification;
 use App\Models\User;
 use App\Services\ProductService;
 use App\Services\GalleryService;
+use App\Services\CloudinaryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
 
@@ -19,12 +20,14 @@ class UserController extends Controller
 {
     protected ProductService $productService;
     protected GalleryService $galleryService;
+    protected CloudinaryService $cloudinaryService;
 
-    public function __construct(ProductService $productService, GalleryService $galleryService)
+    public function __construct(ProductService $productService, GalleryService $galleryService, CloudinaryService $cloudinaryService)
     {
         $this->middleware('auth:sanctum');
         $this->productService = $productService;
         $this->galleryService = $galleryService;
+        $this->cloudinaryService = $cloudinaryService;
     }
 
     public function products(Request $request): JsonResponse
@@ -156,21 +159,30 @@ class UserController extends Controller
         }
 
         if ($request->hasFile('avatar')) {
-            // Delete old avatar if exists
-            if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
-                Storage::disk('public')->delete($user->avatar);
+            try {
+                // Delete old avatar if exists
+                if ($user->avatar) {
+                    $this->deleteCloudinaryImage($user->avatar);
+                }
+
+                // Upload to Cloudinary
+                $result = $this->cloudinaryService->upload($request->file('avatar')->getRealPath(), ['folder' => 'avatars']);
+                $avatarUrl = $result['secure_url'];
+
+                // Update user avatar
+                $user->update(['avatar' => $avatarUrl]);
+
+                return response()->json([
+                    'message' => 'Avatar uploaded successfully',
+                    'avatar_url' => $avatarUrl,
+                    'user' => $user->fresh()
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Failed to upload avatar for user ' . $user->id . ': ' . $e->getMessage());
+                return response()->json([
+                    'message' => 'Failed to upload avatar. Please try again.'
+                ], 500);
             }
-
-            // Store new avatar
-            $path = $request->file('avatar')->store('avatars', 'public');
-
-            $user->update(['avatar' => $path]);
-
-            return response()->json([
-                'message' => 'Avatar uploaded successfully',
-                'avatar_url' => Storage::url($path),
-                'user' => $user->fresh()
-            ]);
         }
 
         return response()->json([
@@ -250,5 +262,32 @@ class UserController extends Controller
             'message' => 'Email verified successfully',
             'user' => $user->fresh()
         ]);
+    }
+
+    private function deleteCloudinaryImage(string $url): void
+    {
+        try {
+            $path = parse_url($url, PHP_URL_PATH);
+            if (!$path) {
+                Log::warning('Invalid Cloudinary URL for deletion: ' . $url);
+                return;
+            }
+
+            $segments = explode('/', ltrim($path, '/'));
+            $uploadIndex = array_search('upload', $segments);
+
+            if ($uploadIndex === false) {
+                Log::warning('Could not find upload segment in Cloudinary URL: ' . $url);
+                return;
+            }
+
+            // Get the part after upload/version/
+            $publicIdWithExt = implode('/', array_slice($segments, $uploadIndex + 2));
+            $publicId = pathinfo($publicIdWithExt, PATHINFO_FILENAME);
+
+            $this->cloudinaryService->delete($publicId);
+        } catch (\Exception $e) {
+            Log::error('Failed to delete Cloudinary image: ' . $e->getMessage());
+        }
     }
 }

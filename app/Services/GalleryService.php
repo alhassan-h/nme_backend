@@ -6,7 +6,7 @@ use App\Models\GalleryImage;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class GalleryService
 {
@@ -97,7 +97,15 @@ class GalleryService
 
     public function uploadImage(UploadedFile $file, array $metadata, User $uploader): GalleryImage
     {
-        $filePath = $file->store('images/gallery', 'public');
+        $cloudinary = app(CloudinaryService::class);
+
+        try {
+            $result = $cloudinary->upload($file->getRealPath(), ['folder' => 'gallery']);
+            $filePath = $result['secure_url'];
+        } catch (\Exception $e) {
+            Log::error('Failed to upload gallery image: ' . $e->getMessage());
+            throw new \Exception('Failed to upload image');
+        }
 
         $galleryImage = new GalleryImage();
         $galleryImage->file_path = $filePath;
@@ -133,18 +141,25 @@ class GalleryService
 
         // Handle image replacement
         if ($newImage) {
-            // Delete old file
-            if ($image->file_path && Storage::disk('public')->exists($image->file_path)) {
-                Storage::disk('public')->delete($image->file_path);
-            }
+            $cloudinary = app(CloudinaryService::class);
 
-            // Store new file
-            $filePath = $newImage->store('images/gallery', 'public');
-            $updateData['file_path'] = $filePath;
+            try {
+                // Delete old image
+                if ($image->file_path) {
+                    $this->deleteCloudinaryImage($image->file_path);
+                }
 
-            // Update uploader if provided
-            if ($uploader) {
-                $updateData['user_id'] = $uploader->id;
+                $result = $cloudinary->upload($newImage->getRealPath(), ['folder' => 'gallery']);
+                $filePath = $result['secure_url'];
+                $updateData['file_path'] = $filePath;
+
+                // Update uploader if provided
+                if ($uploader) {
+                    $updateData['user_id'] = $uploader->id;
+                }
+            } catch (\Exception $e) {
+                Log::error('Failed to upload updated gallery image: ' . $e->getMessage());
+                throw new \Exception('Failed to upload image');
             }
         }
 
@@ -157,10 +172,8 @@ class GalleryService
     {
         $image = GalleryImage::findOrFail($id);
 
-        // Delete the physical file from storage
-        if ($image->file_path && Storage::disk('public')->exists($image->file_path)) {
-            Storage::disk('public')->delete($image->file_path);
-        }
+        // Note: Cloudinary images are not deleted from storage here
+        // They can be deleted via Cloudinary API if needed
 
         return $image->delete();
     }
@@ -290,5 +303,33 @@ class GalleryService
         });
 
         return $paginated;
+    }
+
+    private function deleteCloudinaryImage(string $url): void
+    {
+        try {
+            $path = parse_url($url, PHP_URL_PATH);
+            if (!$path) {
+                Log::warning('Invalid Cloudinary URL for deletion: ' . $url);
+                return;
+            }
+
+            $segments = explode('/', ltrim($path, '/'));
+            $uploadIndex = array_search('upload', $segments);
+
+            if ($uploadIndex === false) {
+                Log::warning('Could not find upload segment in Cloudinary URL: ' . $url);
+                return;
+            }
+
+            // Get the part after upload/version/
+            $publicIdWithExt = implode('/', array_slice($segments, $uploadIndex + 2));
+            $publicId = pathinfo($publicIdWithExt, PATHINFO_FILENAME);
+
+            $cloudinary = app(CloudinaryService::class);
+            $cloudinary->delete($publicId);
+        } catch (\Exception $e) {
+            Log::error('Failed to delete Cloudinary image: ' . $e->getMessage());
+        }
     }
 }

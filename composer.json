@@ -13,6 +13,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "cloudinary/cloudinary_php": "^3.1",
         "fakerphp/faker": "^1.24",
         "jenssegers/agent": "^2.6",
         "laravel/framework": "^12.0",

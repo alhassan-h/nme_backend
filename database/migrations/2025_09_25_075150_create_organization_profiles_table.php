@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('key')->unique(); // Unique identifier for the profile field
             $table->text('value')->nullable(); // The actual data
-            $table->enum('type', ['string', 'json', 'integer', 'boolean', 'float'])->default('string'); // Data type
+            $table->enum('type', ['string', 'json', 'integer', 'boolean', 'float', 'image'])->default('string'); // Data type
             $table->string('description')->nullable(); // Optional description
             $table->boolean('is_public')->default(true); // Whether this field is publicly visible
             $table->integer('sort_order')->default(0); // For ordering fields

@@ -4,7 +4,9 @@ namespace Database\Seeders;
 
 use App\Models\GalleryImage;
 use App\Models\User;
+use App\Services\CloudinaryService;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Log;
 
 class GallerySeeder extends Seeder
 {
@@ -29,7 +31,7 @@ class GallerySeeder extends Seeder
         // Sample gallery images data with explicit data creation
         $galleryImages = [
             [
-                'file_path' => 'images/gallery/gold-nuggets-from-zamfara.png',
+                'filename' => 'gold-nuggets-from-zamfara.png',
                 'category' => 'Gold',
                 'location_id' => $locations['Zamfara State'],
                 'description' => 'Gold Nuggets from Zamfara',
@@ -40,7 +42,7 @@ class GallerySeeder extends Seeder
                 'updated_at' => now()->subDays(5),
             ],
             [
-                'file_path' => 'images/gallery/limestone-quarry-operations.png',
+                'filename' => 'limestone-quarry-operations.png',
                 'category' => 'Limestone',
                 'location_id' => $locations['Ogun State'],
                 'description' => 'Limestone Quarry Operations',
@@ -50,7 +52,7 @@ class GallerySeeder extends Seeder
                 'updated_at' => now()->subDays(6),
             ],
             [
-                'file_path' => 'images/gallery/tin-ore-samples.png',
+                'filename' => 'tin-ore-samples.png',
                 'category' => 'Tin',
                 'location_id' => $locations['Plateau State'],
                 'description' => 'Tin Ore Samples',
@@ -60,7 +62,7 @@ class GallerySeeder extends Seeder
                 'updated_at' => now()->subDays(7),
             ],
             [
-                'file_path' => 'images/gallery/coal-mining-site.png',
+                'filename' => 'coal-mining-site.png',
                 'category' => 'Coal',
                 'location_id' => $locations['Enugu State'],
                 'description' => 'Coal Mining Site',
@@ -70,7 +72,7 @@ class GallerySeeder extends Seeder
                 'updated_at' => now()->subDays(8),
             ],
             [
-                'file_path' => 'images/gallery/iron-ore-deposits.png',
+                'filename' => 'iron-ore-deposits.png',
                 'category' => 'Iron Ore',
                 'location_id' => $locations['Kogi State'],
                 'description' => 'Iron Ore Deposits',
@@ -80,7 +82,7 @@ class GallerySeeder extends Seeder
                 'updated_at' => now()->subDays(9),
             ],
             [
-                'file_path' => 'images/gallery/barite-crystal-formation.png',
+                'filename' => 'barite-crystal-formation.png',
                 'category' => 'Barite',
                 'location_id' => $locations['Cross River State'],
                 'description' => 'Barite Crystal Formation',
@@ -91,7 +93,7 @@ class GallerySeeder extends Seeder
                 'updated_at' => now()->subDays(10),
             ],
             [
-                'file_path' => 'images/gallery/mining-operations-in-kaduna.png',
+                'filename' => 'mining-operations-in-kaduna.png',
                 'category' => 'Mining',
                 'location_id' => $locations['Kaduna State'],
                 'description' => 'Mining Operations in Kaduna',
@@ -102,7 +104,7 @@ class GallerySeeder extends Seeder
                 'updated_at' => now()->subDays(11),
             ],
             [
-                'file_path' => 'images/gallery/mineral-products-display.png',
+                'filename' => 'mineral-products-display.png',
                 'category' => 'Products',
                 'location_id' => $locations['Lagos State'],
                 'description' => 'Mineral Products Display',
@@ -113,7 +115,7 @@ class GallerySeeder extends Seeder
                 'updated_at' => now()->subDays(12),
             ],
             [
-                'file_path' => 'images/gallery/mineral-market-activities.png',
+                'filename' => 'mineral-market-activities.png',
                 'category' => 'Market',
                 'location_id' => $locations['FCT Abuja'],
                 'description' => 'Mineral Market Activities',
@@ -123,7 +125,7 @@ class GallerySeeder extends Seeder
                 'updated_at' => now()->subDays(13),
             ],
             [
-                'file_path' => 'images/gallery/mining-industry-conference.png',
+                'filename' => 'mining-industry-conference.png',
                 'category' => 'Events',
                 'location_id' => $locations['Rivers State'],
                 'description' => 'Mining Industry Conference',
@@ -136,6 +138,9 @@ class GallerySeeder extends Seeder
 
         // Create gallery images
         foreach ($galleryImages as $imageData) {
+            $filename = $imageData['filename'];
+            unset($imageData['filename']);
+            $imageData['file_path'] = $this->uploadGalleryImage($filename);
             GalleryImage::create($imageData);
         }
 
@@ -160,6 +165,24 @@ class GallerySeeder extends Seeder
                     }
                 }
             }
+        }
+    }
+
+    private function uploadGalleryImage($filename)
+    {
+        $cloudinary = app(CloudinaryService::class);
+        try {
+            $imagePath = resource_path('defaults/images/gallery/' . $filename);
+            if (file_exists($imagePath)) {
+                $result = $cloudinary->upload($imagePath, ['folder' => 'gallery']);
+                return $result['secure_url'];
+            } else {
+                Log::warning('Gallery image not found: ' . $imagePath);
+                return null;
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to upload gallery image ' . $filename . ': ' . $e->getMessage());
+            return null;
         }
     }
 }

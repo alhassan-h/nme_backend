@@ -12,7 +12,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class ProductService
 {
@@ -49,9 +49,14 @@ class ProductService
 
         $imagePaths = [];
         if ($images) {
+            $cloudinary = app(CloudinaryService::class);
             foreach ($images as $image) {
-                $path = $image->store('products', 'public');
-                $imagePaths[] = $path;
+                try {
+                    $result = $cloudinary->upload($image->getRealPath(), ['folder' => 'products']);
+                    $imagePaths[] = $result['secure_url'];
+                } catch (\Exception $e) {
+                    Log::error('Failed to upload product image: ' . $e->getMessage());
+                }
             }
         }
 
@@ -117,21 +122,23 @@ class ProductService
         $existingImagesToKeep = $data['existing_images'] ?? [];
         $newImages = $images ?? [];
 
-        // Find images to delete (those in current but not in existing_images_to_keep)
-        $imagesToDelete = array_diff($currentImages, $existingImagesToKeep);
-
-        // Delete removed images from storage
-        foreach ($imagesToDelete as $imageToDelete) {
-            if (Storage::disk('public')->exists($imageToDelete)) {
-                Storage::disk('public')->delete($imageToDelete);
-            }
+        // Delete removed images from Cloudinary
+        foreach ($imagesToDelete as $imageUrl) {
+            $this->deleteCloudinaryImage($imageUrl);
         }
 
         // Upload new images
         $newImagePaths = [];
-        foreach ($newImages as $image) {
-            $path = $image->store('images/products', 'public');
-            $newImagePaths[] = $path;
+        if ($newImages) {
+            $cloudinary = app(CloudinaryService::class);
+            foreach ($newImages as $image) {
+                try {
+                    $result = $cloudinary->upload($image->getRealPath(), ['folder' => 'products']);
+                    $newImagePaths[] = $result['secure_url'];
+                } catch (\Exception $e) {
+                    Log::error('Failed to upload product image: ' . $e->getMessage());
+                }
+            }
         }
 
         // Combine kept existing images with new images
@@ -219,5 +226,33 @@ class ProductService
         $product->save();
 
         return $product->load('seller', 'mineralCategory');
+    }
+
+    private function deleteCloudinaryImage(string $url): void
+    {
+        try {
+            $path = parse_url($url, PHP_URL_PATH);
+            if (!$path) {
+                Log::warning('Invalid Cloudinary URL for deletion: ' . $url);
+                return;
+            }
+
+            $segments = explode('/', ltrim($path, '/'));
+            $uploadIndex = array_search('upload', $segments);
+
+            if ($uploadIndex === false) {
+                Log::warning('Could not find upload segment in Cloudinary URL: ' . $url);
+                return;
+            }
+
+            // Get the part after upload/version/
+            $publicIdWithExt = implode('/', array_slice($segments, $uploadIndex + 2));
+            $publicId = pathinfo($publicIdWithExt, PATHINFO_FILENAME);
+
+            $cloudinary = app(CloudinaryService::class);
+            $cloudinary->delete($publicId);
+        } catch (\Exception $e) {
+            Log::error('Failed to delete Cloudinary image: ' . $e->getMessage());
+        }
     }
 }

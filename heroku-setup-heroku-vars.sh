@@ -35,4 +35,9 @@ heroku config:set MAIL_MAILER_MAILGUN_ENDPOINT=api.mailgun.net --app $HEROKU_APP
 heroku config:set MAIL_FROM_ADDRESS="alhassan88@gmail.com" --app $HEROKU_APP
 heroku config:set MAIL_FROM_NAME="${APP_NAME}" --app $HEROKU_APP
 
+# Cloudinary settings
+heroku config:set CLOUDINARY_CLOUD_NAME=CLOUD_NAME --app $HEROKU_APP
+heroku config:set CLOUDINARY_API_KEY=API_KEY --app $HEROKU_APP
+heroku config:set CLOUDINARY_API_SECRET=API_SECRET --app $HEROKU_APP
+
 echo "All essential Laravel environment variables have been set!"

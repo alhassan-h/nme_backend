@@ -14,6 +14,9 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
+            BusinessSettingSeeder::class,
+            OrganizationSettingSeeder::class,
+            OrganizationProfileSeeder::class,
             UserSeeder::class,
             MineralCategorySeeder::class,
             LocationSeeder::class,
@@ -25,9 +28,6 @@ class DatabaseSeeder extends Seeder
             ForumSeeder::class,
             NewsletterSeeder::class,
             GallerySeeder::class,
-            OrganizationProfileSeeder::class,
-            BusinessSettingSeeder::class,
-            OrganizationSettingSeeder::class,
         ]);
     }
 }
